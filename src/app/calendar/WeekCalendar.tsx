@@ -1,19 +1,19 @@
-// src/app/calendar/WeekCalendar.tsx
 "use client";
 
 import DayCalendar from "./DayCalendar";
 
-type EventItem = {
+export type EventItem = {
   id: string;
   title: string;
   start: Date;
   end: Date;
   patientId?: string;
   fee?: number;
+  color?: string;
 };
 
 export default function WeekCalendar({
-  startOfWeek, // Monday
+  startOfWeek,
   eventsByDay,
   onCreate,
   onMove,
@@ -26,16 +26,23 @@ export default function WeekCalendar({
   onEventClick?: (evt: EventItem) => void;
 }) {
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
+    <div className="grid grid-cols-7 gap-px bg-gray-200">
       {eventsByDay.map(({ date, events }) => (
-        <div key={date.toDateString()}>
-          <div className="mb-2 text-sm font-medium text-gray-700">
-            {date.toLocaleDateString()}
+        <div key={date.toISOString()} className="bg-white">
+          <div className="p-2 border-b bg-gray-50 text-center font-medium">
+            {date.toLocaleDateString(undefined, {
+              weekday: "short",
+              day: "numeric",
+            })}
           </div>
           <DayCalendar
             date={date}
             events={events}
-            onCreate={(s, e) => onCreate(date, s, e)}
+            minuteStep={15}
+            onCreate={(start, end) => {
+              // FIX: include the date argument so the correct day is passed
+              onCreate(date, start, end);
+            }}
             onMove={onMove}
             onEventClick={onEventClick}
           />

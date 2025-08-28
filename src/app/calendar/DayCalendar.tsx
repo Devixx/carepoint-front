@@ -12,6 +12,11 @@ import {
   toTimeLabel,
   withinDayRange,
 } from "./utils";
+import {
+  createISOFromLocal,
+  formatForDateTimeLocal,
+  normalizeToLocalMidnight,
+} from "./timezone-utils";
 
 type EventItem = {
   id: string;
@@ -56,7 +61,7 @@ export default function DayCalendar({
     const el = containerRef.current;
     if (!el) return DAY_START_HOUR * 60;
     const rect = el.getBoundingClientRect();
-    const y = clientY - rect.top; // px from top
+    const y = clientY - rect.top;
     const totalMins = (DAY_END_HOUR - DAY_START_HOUR) * 60;
     const minutePerPx = totalMins / el.clientHeight;
     const mins = DAY_START_HOUR * 60 + y * minutePerPx;
@@ -92,10 +97,18 @@ export default function DayCalendar({
 
   function handleMouseUp() {
     if (drag.type === "create") {
-      const startMin = drag.startMin;
-      const endMin = drag.endMin;
-      const start = setTime(date, Math.floor(startMin / 60), startMin % 60);
-      const end = setTime(date, Math.floor(endMin / 60), endMin % 60);
+      // Create a fresh Date at local midnight
+      const base = new Date(
+        date.getFullYear(),
+        date.getMonth(),
+        date.getDate()
+      );
+      const start = setTime(
+        base,
+        Math.floor(drag.startMin / 60),
+        drag.startMin % 60
+      );
+      const end = setTime(base, Math.floor(drag.endMin / 60), drag.endMin % 60);
       onCreate(start, end);
     }
     setDrag({ type: "none" });

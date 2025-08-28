@@ -40,3 +40,17 @@ export function setTime(date: Date, hours: number, minutes: number) {
 export function withinDayRange(mins: number) {
   return Math.max(DAY_START_HOUR * 60, Math.min(DAY_END_HOUR * 60, mins));
 }
+
+export function createSafeDate(date: Date): Date {
+  return new Date(date.getTime());
+}
+
+export function setTimeWithoutMutation(
+  date: Date,
+  hours: number,
+  minutes: number
+): Date {
+  const d = new Date(date.getTime()); // Create copy first
+  d.setHours(hours, minutes, 0, 0);
+  return d;
+}

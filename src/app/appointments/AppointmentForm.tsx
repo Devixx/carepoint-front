@@ -3,6 +3,7 @@
 import Input from "../ui/primitives/Input";
 import Button from "../ui/primitives/Button";
 import { useState } from "react";
+import { createISOFromLocal } from "../calendar/timezone-utils";
 
 export type AppointmentFormValues = {
   title: string;
@@ -34,8 +35,8 @@ export default function AppointmentForm({
         e.preventDefault();
         onSubmit({
           title,
-          startTime: new Date(start).toISOString(),
-          endTime: new Date(end).toISOString(),
+          startTime: createISOFromLocal(start),
+          endTime: createISOFromLocal(end),
           patientId,
           fee,
         });

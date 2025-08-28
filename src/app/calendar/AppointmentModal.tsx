@@ -3,6 +3,7 @@
 
 import { useEffect, useState } from "react";
 import PatientSelect from "./PatientSelect";
+import { createISOFromLocal, formatForDateTimeLocal } from "./timezone-utils";
 
 export type AppointmentPayload = {
   title: string;
@@ -33,8 +34,8 @@ export default function AppointmentModal({
 
   useEffect(() => {
     if (open && defaultStart && defaultEnd) {
-      setStart(defaultStart.toISOString().slice(0, 16));
-      setEnd(defaultEnd.toISOString().slice(0, 16));
+      setStart(formatForDateTimeLocal(defaultStart));
+      setEnd(formatForDateTimeLocal(defaultEnd));
     }
   }, [open, defaultStart, defaultEnd]);
 
@@ -62,8 +63,8 @@ export default function AppointmentModal({
             if (!canSave) return;
             onSubmit({
               title,
-              startTime: new Date(start).toISOString(),
-              endTime: new Date(end).toISOString(),
+              startTime: createISOFromLocal(start),
+              endTime: createISOFromLocal(end),
               patientId,
               fee: fee === "" ? undefined : Number(fee),
             });
