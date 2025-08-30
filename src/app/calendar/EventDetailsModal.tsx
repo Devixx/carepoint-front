@@ -1,6 +1,9 @@
 // src/app/calendar/EventDetailsModal.tsx
 "use client";
 
+import { useEffect } from "react";
+import { formatForDateTimeLocal } from "./timezone-utils";
+
 export type CalendarEventVM = {
   id: string;
   title: string;
@@ -23,7 +26,23 @@ export default function EventDetailsModal({
   onEdit: (evt: CalendarEventVM) => void;
   onDelete: (evt: CalendarEventVM) => void;
 }) {
+  useEffect(() => {
+    if (open && event) {
+      console.log("Modal received event:", {
+        start: event.start,
+        startISO: event.start.toISOString(),
+        startLocal: event.start.toLocaleString(),
+        end: event.end,
+        endISO: event.end.toISOString(),
+        endLocal: event.end.toLocaleString(),
+      });
+    }
+  }, [open, event]);
   if (!open || !event) return null;
+
+  // Format for display in the modal:
+  const startLocal = formatForDateTimeLocal(event.start);
+  const endLocal = formatForDateTimeLocal(event.end);
 
   return (
     <div className="fixed inset-0 z-50">
@@ -46,13 +65,11 @@ export default function EventDetailsModal({
           </div>
           <div>
             <span className="text-gray-500">Start:</span>{" "}
-            <span className="text-gray-900">
-              {event.start.toLocaleString()}
-            </span>
+            <span className="text-gray-900">{startLocal}</span>
           </div>
           <div>
             <span className="text-gray-500">End:</span>{" "}
-            <span className="text-gray-900">{event.end.toLocaleString()}</span>
+            <span className="text-gray-900">{endLocal}</span>
           </div>
           <div>
             <span className="text-gray-500">Patient:</span>{" "}

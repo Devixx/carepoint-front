@@ -14,7 +14,16 @@ export function createDateFromAPI(isoString: string): Date {
  * Prevents accidental mutations
  */
 export function cloneDate(date: Date): Date {
-  return new Date(date.getTime());
+  // Create a new Date object at the same local time
+  return new Date(
+    date.getFullYear(),
+    date.getMonth(),
+    date.getDate(),
+    date.getHours(),
+    date.getMinutes(),
+    date.getSeconds(),
+    date.getMilliseconds()
+  );
 }
 
 /**

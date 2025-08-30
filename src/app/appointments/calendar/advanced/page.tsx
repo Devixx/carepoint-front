@@ -191,8 +191,8 @@ export default function AdvancedCalendarPage() {
   function handleEventClick(evt: CalendarEventVM) {
     setDetailsEvent({
       ...evt,
-      start: cloneDate(evt.start),
-      end: cloneDate(evt.end),
+      // start: cloneDate(evt.start),
+      // end: cloneDate(evt.end),
     });
   }
 
