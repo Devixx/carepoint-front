@@ -3,6 +3,11 @@
 
 import { useEffect } from "react";
 import { formatForDateTimeLocal } from "./timezone-utils";
+import {
+  CalendarEvent,
+  debugDateInfo,
+  toDateTimeLocalString,
+} from "./date-core";
 
 export type CalendarEventVM = {
   id: string;
@@ -21,28 +26,23 @@ export default function EventDetailsModal({
   onDelete,
 }: {
   open: boolean;
-  event: CalendarEventVM | null;
+  event: CalendarEvent | null; // ✅ Updated: Use CalendarEvent type
   onClose: () => void;
-  onEdit: (evt: CalendarEventVM) => void;
-  onDelete: (evt: CalendarEventVM) => void;
+  onEdit: (evt: CalendarEvent) => void; // ✅ Updated: Use CalendarEvent type
+  onDelete: (evt: CalendarEvent) => void; // ✅ Updated: Use CalendarEvent type
 }) {
+  // ✅ Debug logging in development
   useEffect(() => {
     if (open && event) {
-      console.log("Modal received event:", {
-        start: event.start,
-        startISO: event.start.toISOString(),
-        startLocal: event.start.toLocaleString(),
-        end: event.end,
-        endISO: event.end.toISOString(),
-        endLocal: event.end.toLocaleString(),
-      });
+      debugDateInfo(event.start, "Details Modal Start");
+      debugDateInfo(event.end, "Details Modal End");
     }
   }, [open, event]);
   if (!open || !event) return null;
 
   // Format for display in the modal:
-  const startLocal = formatForDateTimeLocal(event.start);
-  const endLocal = formatForDateTimeLocal(event.end);
+  const startLocal = toDateTimeLocalString(event.start);
+  const endLocal = toDateTimeLocalString(event.end);
 
   return (
     <div className="fixed inset-0 z-50">

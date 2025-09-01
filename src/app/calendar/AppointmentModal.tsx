@@ -4,6 +4,12 @@
 import { useEffect, useState } from "react";
 import PatientSelect from "./PatientSelect";
 import { createISOFromLocal, formatForDateTimeLocal } from "./timezone-utils";
+import {
+  debugDateInfo,
+  fromDateTimeLocalString,
+  toApiString,
+  toDateTimeLocalString,
+} from "./date-core";
 
 export type AppointmentPayload = {
   title: string;
@@ -34,14 +40,37 @@ export default function AppointmentModal({
 
   useEffect(() => {
     if (open && defaultStart && defaultEnd) {
-      setStart(formatForDateTimeLocal(defaultStart));
-      setEnd(formatForDateTimeLocal(defaultEnd));
+      debugDateInfo(defaultStart, "Modal Default Start");
+      debugDateInfo(defaultEnd, "Modal Default End");
+
+      setStart(toDateTimeLocalString(defaultStart));
+      setEnd(toDateTimeLocalString(defaultEnd));
     }
   }, [open, defaultStart, defaultEnd]);
 
   if (!open) return null;
 
   const canSave = title.trim() && start && end && patientId;
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!canSave) return;
+
+    // ✅ Updated: Use Single Source of Truth utilities
+    const startDate = fromDateTimeLocalString(start);
+    const endDate = fromDateTimeLocalString(end);
+
+    debugDateInfo(startDate, "Submit Start");
+    debugDateInfo(endDate, "Submit End");
+
+    onSubmit({
+      title,
+      startTime: toApiString(startDate),
+      endTime: toApiString(endDate),
+      patientId,
+      fee: fee === "" ? undefined : Number(fee),
+    });
+  };
 
   return (
     <div className="fixed inset-0 z-50">
@@ -56,20 +85,7 @@ export default function AppointmentModal({
             ✕
           </button>
         </div>
-        <form
-          className="space-y-3"
-          onSubmit={(e) => {
-            e.preventDefault();
-            if (!canSave) return;
-            onSubmit({
-              title,
-              startTime: createISOFromLocal(start),
-              endTime: createISOFromLocal(end),
-              patientId,
-              fee: fee === "" ? undefined : Number(fee),
-            });
-          }}
-        >
+        <form className="space-y-3" onSubmit={handleSubmit}>
           <div>
             <label className="text-sm">Title</label>
             <input

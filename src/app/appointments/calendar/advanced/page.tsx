@@ -39,6 +39,12 @@ import {
   parseLocalISO,
 } from "../../../calendar/timezone-utils";
 import { setTime } from "@/app/calendar/utils";
+import {
+  CalendarEvent,
+  debugDateInfo,
+  normalizeApiEvents,
+  toApiString,
+} from "@/app/calendar/date-core";
 
 // API model coming from backend day endpoint
 type ApiItem = {
@@ -70,15 +76,7 @@ export default function AdvancedCalendarPage() {
     queryKey: ["calendar-day", dayKey],
     queryFn: () => dayAppointments(dayKey),
   });
-  const eventsDay = (qDay.data ?? []).map((a) => ({
-    id: a.id,
-    title: a.title,
-    // First normalize date to local midnight, then set time
-    start: parseLocalISO(a.startTime),
-    end: parseLocalISO(a.endTime),
-    patientId: a.patientId,
-    fee: a.fee,
-  })) as CalendarEventVM[];
+  const eventsDay = normalizeApiEvents(qDay.data ?? []);
 
   // WEEK data
   const weekDates = useMemo(
@@ -93,14 +91,7 @@ export default function AdvancedCalendarPage() {
     });
     return {
       date: d,
-      events: (q.data ?? []).map((a) => ({
-        id: a.id,
-        title: a.title,
-        start: new Date(a.startTime),
-        end: new Date(a.endTime),
-        patientId: a.patientId,
-        fee: a.fee,
-      })) as CalendarEventVM[],
+      events: normalizeApiEvents(q.data ?? []),
     };
   });
 
@@ -114,14 +105,7 @@ export default function AdvancedCalendarPage() {
       queryKey: ["calendar-day", key],
       queryFn: () => dayAppointments(key),
     });
-    eventsMonthMap[key] = (q.data ?? []).map((a) => ({
-      id: a.id,
-      title: a.title,
-      start: new Date(a.startTime),
-      end: new Date(a.endTime),
-      patientId: a.patientId,
-      fee: a.fee,
-    })) as CalendarEventVM[];
+    eventsMonthMap[key] = normalizeApiEvents(q.data ?? []);
   });
 
   // Mutations
@@ -137,8 +121,8 @@ export default function AdvancedCalendarPage() {
   const moveMut = useMutation({
     mutationFn: ({ id, start, end }: { id: string; start: Date; end: Date }) =>
       updateAppointment(id, {
-        startTime: start.toISOString(),
-        endTime: end.toISOString(),
+        startTime: toApiString(start), // ✅ Use Single Source of Truth
+        endTime: toApiString(end), // ✅ Use Single Source of Truth
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-day"] }),
   });
@@ -187,16 +171,21 @@ export default function AdvancedCalendarPage() {
     setCursorDate(new Date());
   }
 
-  // Handle event click
-  function handleEventClick(evt: CalendarEventVM) {
-    setDetailsEvent({
-      ...evt,
-      // start: cloneDate(evt.start),
-      // end: cloneDate(evt.end),
-    });
+  // ✅ Handle event click - SIMPLIFIED with Single Source of Truth
+  function handleEventClick(evt: CalendarEvent) {
+    // Debug in development
+    debugDateInfo(evt.start, "Event Click Start");
+    debugDateInfo(evt.end, "Event Click End");
+
+    // No cloning needed - data is already normalized and consistent
+    setDetailsEvent(evt);
   }
 
+  // ✅ Handle event move - SIMPLIFIED with Single Source of Truth
   function handleEventMove(id: string, newStart: Date, newEnd: Date) {
+    debugDateInfo(newStart, "Move Start");
+    debugDateInfo(newEnd, "Move End");
+
     moveMut.mutate({ id, start: newStart, end: newEnd });
   }
 

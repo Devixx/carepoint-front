@@ -9,7 +9,13 @@ import {
   clampToStep,
 } from "./utils";
 import type { EventItem } from "./WeekCalendar";
-import { cloneDate } from "./timezone-utils";
+import {
+  CalendarEvent,
+  debugDateInfo,
+  getMidnight,
+  getMinutesSinceMidnight,
+  setTimeOnDate,
+} from "./date-core";
 
 interface DragStateNone {
   type: "none";
@@ -43,10 +49,10 @@ export default function DayCalendar({
   minuteStep = 15,
 }: {
   date: Date;
-  events: EventItem[];
+  events: CalendarEvent[];
   onCreate: (start: Date, end: Date) => void;
   onMove: (id: string, newStart: Date, newEnd: Date) => void;
-  onEventClick?: (evt: EventItem) => void;
+  onEventClick?: (evt: CalendarEvent) => void;
   minuteStep?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -100,8 +106,8 @@ export default function DayCalendar({
       if (!evt) return;
 
       const clickY = yToMinutes(e.clientY);
-      const eventStartMin = minutesSinceStartOfDay(evt.start);
-      const duration = minutesSinceStartOfDay(evt.end) - eventStartMin;
+      const eventStartMin = getMinutesSinceMidnight(evt.start);
+      const duration = getMinutesSinceMidnight(evt.end) - eventStartMin;
 
       setDrag({
         type: "move",
@@ -139,33 +145,37 @@ export default function DayCalendar({
       if (drag.type === "create") {
         const { startMin, endMin } = drag;
         if (endMin > startMin) {
-          const base = new Date(
-            date.getFullYear(),
-            date.getMonth(),
-            date.getDate()
-          );
-          const start = setTime(base, Math.floor(startMin / 60), startMin % 60);
-          const end = setTime(base, Math.floor(endMin / 60), endMin % 60);
+          const base = getMidnight(date); // ✅ Use Single Source of Truth
+          const start = setTimeOnDate(
+            base,
+            Math.floor(startMin / 60),
+            startMin % 60
+          ); // ✅ Use Single Source of Truth
+          const end = setTimeOnDate(base, Math.floor(endMin / 60), endMin % 60); // ✅ Use Single Source of Truth
+
+          debugDateInfo(start, "Create Start");
+          debugDateInfo(end, "Create End");
+
           onCreate(start, end);
         }
       } else if (drag.type === "move") {
         const { eventId, currentStartMin, duration } = drag;
         const newEndMin = Math.min(currentStartMin + duration, 24 * 60);
-        const base = new Date(
-          date.getFullYear(),
-          date.getMonth(),
-          date.getDate()
-        );
-        const newStart = setTime(
+        const base = getMidnight(date); // ✅ Use Single Source of Truth
+        const newStart = setTimeOnDate(
           base,
           Math.floor(currentStartMin / 60),
           currentStartMin % 60
-        );
-        const newEnd = setTime(
+        ); // ✅ Use Single Source of Truth
+        const newEnd = setTimeOnDate(
           base,
           Math.floor(newEndMin / 60),
           newEndMin % 60
-        );
+        ); // ✅ Use Single Source of Truth
+
+        debugDateInfo(newStart, "Move Start");
+        debugDateInfo(newEnd, "Move End");
+
         onMove(eventId, newStart, newEnd);
       }
       setDrag({ type: "none" });
@@ -181,19 +191,18 @@ export default function DayCalendar({
     }
   }, [drag, yToMinutes, minuteStep, date, onCreate, onMove]);
 
-  // Handle event clicks
+  // ✅ Handle event clicks - SIMPLIFIED with Single Source of Truth
   const handleEventClick = useCallback(
-    (e: React.MouseEvent, evt: EventItem) => {
+    (e: React.MouseEvent, evt: CalendarEvent) => {
       if (drag.type !== "none") return;
       e.stopPropagation();
 
-      // Clone the event with proper local dates to prevent timezone shifts
-      const clonedEvent = {
-        ...evt,
-        start: new Date(evt.start), // ✅ Use this instead
-        end: new Date(evt.end),
-      };
-      onEventClick?.(clonedEvent);
+      // Debug in development
+      debugDateInfo(evt.start, "Click Event Start");
+      debugDateInfo(evt.end, "Click Event End");
+
+      // No cloning needed - data is already normalized and consistent
+      onEventClick?.(evt);
     },
     [drag.type, onEventClick]
   );
@@ -288,8 +297,8 @@ export default function DayCalendar({
 
         {/* Events */}
         {events.map((evt) => {
-          let startMin = minutesSinceStartOfDay(evt.start);
-          let duration = minutesSinceStartOfDay(evt.end) - startMin;
+          let startMin = getMinutesSinceMidnight(evt.start);
+          const duration = getMinutesSinceMidnight(evt.end) - startMin;
 
           // If this event is being dragged, use the drag position
           if (drag.type === "move" && drag.eventId === evt.id) {

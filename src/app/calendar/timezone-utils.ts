@@ -84,3 +84,9 @@ export function createISOFromLocal(datetimeLocal: string): string {
   const d = new Date(datetimeLocal);
   return d.toISOString();
 }
+
+export function parseApiDate(isoString: string): Date {
+  // Always use standard Date constructor for ISO strings
+  // This properly handles timezone information
+  return new Date(isoString);
+}
