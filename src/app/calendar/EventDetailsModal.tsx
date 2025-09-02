@@ -15,13 +15,14 @@ import {
 } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
+import { Patient } from "../api/patients";
 
 export type CalendarEventVM = {
   id: string;
   title: string;
   start: Date;
   end: Date;
-  patientId?: string;
+  patient?: Patient;
   fee?: number;
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -268,12 +269,12 @@ export default function EventDetailsModal({
                   </div>
                   <div>
                     <p className="text-base font-medium text-gray-900">
-                      {event.patientId
-                        ? `Patient ID: ${event.patientId}`
+                      {event.patient
+                        ? `Patient ID: ${event.patient.firstName} ${event.patient.lastName}`
                         : "No patient assigned"}
                     </p>
                     <p className="text-sm text-gray-500">
-                      {event.patientId
+                      {event.patient
                         ? "Patient record available"
                         : "Assign a patient to this appointment"}
                     </p>

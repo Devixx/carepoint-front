@@ -5,6 +5,7 @@
 "use client";
 
 import { http } from "../lib/http";
+import { Patient } from "./patients";
 
 export interface Appointment {
   id: string;
@@ -14,9 +15,10 @@ export interface Appointment {
   endTime: string;
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
-  patientId: string;
+  patient: Patient;
   fee?: number;
   createdAt?: string;
+  patientFullName?: string;
 }
 
 export interface Paginated<T> {
@@ -31,6 +33,12 @@ export async function listAppointments(params: {
   const res = await http.get<Paginated<Appointment>>("/appointments", {
     params,
   });
+  res.data.items.forEach((appt) => ({
+    ...appt,
+    patientFullName: [appt.patient.firstName, appt.patient.lastName]
+      .filter(Boolean)
+      .join(" "),
+  }));
   return res.data;
 }
 

@@ -3,10 +3,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
-import { listPatients } from "../api/patients";
+import { listPatients, Patient } from "../api/patients";
 import { ChevronDown, Search, User, Check } from "lucide-react";
 
-type Option = { id: string; label: string };
+type Option = Patient;
 
 export default function PatientSelect({
   value,
@@ -15,8 +15,8 @@ export default function PatientSelect({
   error,
   disabled = false,
 }: {
-  value: string | undefined;
-  onChange: (val: string) => void;
+  value: Patient | undefined;
+  onChange: (val: Patient) => void;
   placeholder?: string;
   error?: string;
   disabled?: boolean;
@@ -48,21 +48,22 @@ export default function PatientSelect({
     return () => clearTimeout(id);
   }, [search, refetch]);
 
-  const options: Option[] = useMemo(() => {
+  const options: Patient[] = useMemo(() => {
     const items = data?.pages?.flatMap((p) => p.items) ?? [];
     return items.map((p) => ({
-      id: p.id,
+      ...p,
       label:
         [p.firstName, p.lastName].filter(Boolean).join(" ") || p.email || p.id,
     }));
   }, [data]);
 
   // Find the selected option
-  const selectedOption = options.find((o) => o.id === value);
+  const selectedOption = options.find((o) => o.id === value?.id);
 
   // ✅ Handle patient selection
-  const handleSelect = (patientId: string) => {
-    onChange(patientId);
+  const handleSelect = (patient: Patient) => {
+    console.log("Selected patient ID:", patient?.id); // Debug log
+    onChange(patient);
     setIsOpen(false);
     setSearch(""); // Reset search after selection
   };
@@ -150,7 +151,7 @@ export default function PatientSelect({
                     <button
                       key={option.id}
                       type="button"
-                      onClick={() => handleSelect(option.id)}
+                      onClick={() => handleSelect(option)}
                       className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center justify-between group"
                     >
                       <div className="flex items-center flex-1">
@@ -166,7 +167,7 @@ export default function PatientSelect({
                           </div>
                         </div>
                       </div>
-                      {value === option.id && (
+                      {value?.id === option.id && (
                         <Check className="w-4 h-4 text-primary-600" />
                       )}
                     </button>
@@ -178,7 +179,7 @@ export default function PatientSelect({
                       type="button"
                       onClick={handleLoadMore}
                       disabled={isFetching}
-                      className="w-full px-4 py-3 text-sm text-primary-600 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-t border-gray-200 disabled:opacity-50"
+                      className="w-full px-4 py-3 text-sm text-blue-600 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-t border-gray-200 disabled:opacity-50"
                     >
                       {isFetching ? "Loading..." : "Load more patients"}
                     </button>
@@ -199,7 +200,7 @@ export default function PatientSelect({
       {/* ✅ Selected patient display (for debugging) */}
       {value && selectedOption && (
         <div className="mt-1 text-xs text-gray-600">
-          Selected: {selectedOption.label} (ID: {value})
+          Selected: {selectedOption.label} (ID: {selectedOption.id})
         </div>
       )}
     </div>

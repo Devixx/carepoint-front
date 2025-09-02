@@ -7,12 +7,14 @@
  * @version 2.0.0 - Timezone Safe Architecture
  */
 
+import { Patient } from "../api/patients";
+
 export interface ApiTimeSlot {
   id: string;
   title: string;
   startTime: string; // ISO string from API
   endTime: string; // ISO string from API
-  patientId?: string;
+  patient?: Patient;
   fee?: number;
 }
 
@@ -21,7 +23,7 @@ export interface CalendarEvent {
   title: string;
   start: Date; // Normalized Date object
   end: Date; // Normalized Date object
-  patientId?: string;
+  patient?: Patient;
   fee?: number;
   color?: string;
 }
@@ -36,7 +38,7 @@ export function normalizeApiEvent(apiEvent: ApiTimeSlot): CalendarEvent {
     title: apiEvent.title,
     start: new Date(apiEvent.startTime),
     end: new Date(apiEvent.endTime),
-    patientId: apiEvent.patientId,
+    patient: apiEvent.patient,
     fee: apiEvent.fee,
   };
 }

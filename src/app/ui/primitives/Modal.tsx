@@ -63,7 +63,7 @@ export default function Modal({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.2 }}
-            className={`relative z-10 w-full ${sizes[size]} max-h-[90vh] overflow-auto bg-white rounded-2xl shadow-strong`}
+            className={`relative z-10 w-full ${sizes[size]} max-h-[95vh] overflow-auto bg-white rounded-2xl shadow-strong`}
           >
             <div className="p-6">
               <div className="flex items-center justify-between mb-4">

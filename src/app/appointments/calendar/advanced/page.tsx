@@ -133,7 +133,7 @@ export default function AdvancedCalendarPage() {
         title: p.title,
         startTime: p.startTime,
         endTime: p.endTime,
-        patientId: p.patientId,
+        patient: p.patient,
         fee: p.fee,
       }),
     onSuccess: () => {

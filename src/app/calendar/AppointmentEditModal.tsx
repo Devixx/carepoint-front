@@ -1,6 +1,7 @@
 // Updated: src/app/calendar/AppointmentEditModal.tsx - Reuse Appointments Modal
 "use client";
 
+import { Patient } from "../api/patients";
 // ✅ Import the professional modal from appointments directory
 import AppointmentEditModal, {
   AppointmentEditPayload,
@@ -16,7 +17,7 @@ function calendarEventToAppointment(event: CalendarEvent): any {
     endTime: event.end.toISOString(),
     type: event.type || "consultation",
     status: event.status || "confirmed",
-    patientId: event.patientId || "",
+    patient: event.patient || "",
     fee: event.fee,
     createdAt: new Date().toISOString(),
   };
@@ -31,7 +32,7 @@ function appointmentPayloadToCalendarPayload(
     title: payload.title,
     startTime: payload.startTime,
     endTime: payload.endTime,
-    patientId: payload.patientId,
+    patient: payload.patient,
     fee: payload.fee,
     type: payload.type,
     status: payload.status,
@@ -45,7 +46,7 @@ interface CalendarEvent {
   title: string;
   start: Date;
   end: Date;
-  patientId?: string;
+  patient?: Patient;
   fee?: number;
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
@@ -58,7 +59,7 @@ export interface CalendarEditPayload {
   title: string;
   startTime: string;
   endTime: string;
-  patientId: string;
+  patient: Patient;
   fee?: number;
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";

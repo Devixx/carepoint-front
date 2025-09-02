@@ -7,6 +7,7 @@ import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import PatientSelect from "../calendar/PatientSelect";
+import { Patient } from "../api/patients";
 
 export interface AppointmentEditPayload {
   id: string;
@@ -16,7 +17,7 @@ export interface AppointmentEditPayload {
   endTime: string;
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed" | "in_progress" | "completed" | "cancelled";
-  patientId: string;
+  patient: Patient;
   fee?: number;
 }
 
@@ -44,7 +45,7 @@ export default function AppointmentEditModal({
     endTime: "",
     type: "consultation" as const,
     status: "pending" as const,
-    patientId: "",
+    patient: {} as Patient,
     fee: "",
   });
 
@@ -63,7 +64,7 @@ export default function AppointmentEditModal({
         endTime: end.toISOString().slice(0, 16),
         type: appointment.type || "consultation",
         status: appointment.status || "pending",
-        patientId: appointment.patientId || "",
+        patient: appointment.patient || "",
         fee: appointment.fee?.toString() || "",
       });
       setErrors({});
@@ -83,7 +84,7 @@ export default function AppointmentEditModal({
     if (!formData.endTime) {
       newErrors.endTime = "End time is required";
     }
-    if (!formData.patientId.trim()) {
+    if (!formData.patient) {
       newErrors.patientId = "Patient selection is required";
     }
 
@@ -120,7 +121,7 @@ export default function AppointmentEditModal({
       endTime: new Date(formData.endTime).toISOString(),
       type: formData.type,
       status: formData.status,
-      patientId: formData.patientId.trim(),
+      patient: formData.patient,
       fee: formData.fee ? Number(formData.fee) : undefined,
     });
   };
@@ -327,8 +328,8 @@ export default function AppointmentEditModal({
               </label>
               <div className={`${errors.patientId ? "border-red-300" : ""}`}>
                 <PatientSelect
-                  value={formData.patientId}
-                  onChange={(value) => handleInputChange("patientId", value)}
+                  value={formData.patient}
+                  onChange={(value) => handleInputChange("patient", value)}
                   placeholder="Select a patient..."
                 />
               </div>

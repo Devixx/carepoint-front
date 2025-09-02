@@ -16,6 +16,7 @@ export interface Patient {
   address?: string;
   medicalHistory?: string;
   createdAt?: string;
+  label: string; // For select display
 }
 
 export interface Paginated<T> {
