@@ -103,7 +103,7 @@ export default function PatientsPage() {
               </div>
               <button
                 onClick={() => setOpenCreate(true)}
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary-500"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               >
                 <Plus className="w-4 h-4 mr-2" />
                 Add Patient
@@ -117,7 +117,7 @@ export default function PatientsPage() {
                 <input
                   type="text"
                   placeholder="Search patients..."
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-primary-500 focus:border-primary-500"
+                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                 />
@@ -180,7 +180,7 @@ export default function PatientsPage() {
                       </h3>
                       <button
                         onClick={() => setOpenCreate(true)}
-                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary-600 hover:bg-primary-700"
+                        className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700"
                       >
                         <Plus className="w-4 h-4 mr-2" />
                         Add Patient

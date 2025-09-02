@@ -11,7 +11,7 @@ export default function Header() {
         <div className="flex-1 max-w-md">
           <div className="relative">
             <input
-              className="w-full rounded-lg border border-gray-200 pl-10 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500"
+              className="w-full rounded-lg border border-gray-200 pl-10 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500"
               placeholder="Search patients, appointments..."
             />
             <Search className="absolute left-3 top-2.5 h-4 w-4 text-gray-400" />

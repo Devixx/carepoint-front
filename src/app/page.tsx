@@ -52,7 +52,7 @@ export default function DashboardPage() {
                 </h2>
                 <a
                   href="/appointments"
-                  className="text-sm text-primary-600 hover:underline"
+                  className="text-sm text-blue-600 hover:underline"
                 >
                   View all
                 </a>
@@ -71,7 +71,7 @@ export default function DashboardPage() {
                         Today • 14:00–14:30 • Room A
                       </div>
                     </div>
-                    <span className="text-xs px-2 py-1 rounded-full bg-primary-50 text-primary-700 border border-primary-100">
+                    <span className="text-xs px-2 py-1 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
                       Confirmed
                     </span>
                   </div>

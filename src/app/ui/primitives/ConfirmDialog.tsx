@@ -42,16 +42,16 @@ export default function ConfirmDialog({
         <div className="mt-5 flex justify-end gap-2">
           <button
             onClick={onCancel}
-            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-primary-100"
+            className="px-4 py-2 rounded-lg border border-gray-300 bg-white text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-100"
           >
             {cancelText}
           </button>
           <button
             onClick={onConfirm}
-            className={`px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-primary-100 ${
+            className={`px-4 py-2 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-blue-100 ${
               danger
                 ? "bg-red-600 hover:bg-red-700"
-                : "bg-blue-700 hover:bg-primary-700"
+                : "bg-blue-700 hover:bg-blue-700"
             }`}
           >
             {confirmText}

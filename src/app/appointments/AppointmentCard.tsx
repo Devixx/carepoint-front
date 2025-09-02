@@ -105,7 +105,7 @@ export default function AppointmentCard({
       {/* Main card - clickable area */}
       <div
         onClick={() => onViewDetails?.(appointment)}
-        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg hover:border-primary-300 transition-all duration-200 cursor-pointer"
+        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer"
       >
         {/* Header with type icon and actions */}
         <div className="flex items-start justify-between mb-4">

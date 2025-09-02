@@ -1,9 +1,10 @@
-// src/app/calendar/PatientSelect.tsx
+// Fixed: src/app/calendar/PatientSelect.tsx - Now Properly Sets Patient ID
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listPatients } from "../api/patients";
+import { ChevronDown, Search, User, Check } from "lucide-react";
 
 type Option = { id: string; label: string };
 
@@ -11,12 +12,18 @@ export default function PatientSelect({
   value,
   onChange,
   placeholder = "Select patient...",
+  error,
+  disabled = false,
 }: {
   value: string | undefined;
   onChange: (val: string) => void;
   placeholder?: string;
+  error?: string;
+  disabled?: boolean;
 }) {
   const [search, setSearch] = useState("");
+  const [isOpen, setIsOpen] = useState(false);
+
   const { data, fetchNextPage, hasNextPage, isFetching, refetch, isLoading } =
     useInfiniteQuery({
       queryKey: ["patients-select", search],
@@ -50,59 +57,149 @@ export default function PatientSelect({
     }));
   }, [data]);
 
+  // Find the selected option
+  const selectedOption = options.find((o) => o.id === value);
+
+  // ✅ Handle patient selection
+  const handleSelect = (patientId: string) => {
+    onChange(patientId);
+    setIsOpen(false);
+    setSearch(""); // Reset search after selection
+  };
+
+  // ✅ Handle load more
+  const handleLoadMore = () => {
+    if (hasNextPage && !isFetching) {
+      fetchNextPage();
+    }
+  };
+
   return (
-    <div>
-      <div className="relative mb-2">
-        <input
-          className="w-full rounded border border-gray-200 pl-3 pr-3 py-2 text-sm placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500"
-          placeholder="Search patients…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
+    <div className="relative">
+      {/* ✅ Main dropdown trigger button */}
+      <button
+        type="button"
+        onClick={() => !disabled && setIsOpen(!isOpen)}
+        disabled={disabled}
+        className={`w-full px-3 py-2 text-left bg-white border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 flex items-center justify-between ${
+          error ? "border-red-300" : "border-gray-300"
+        } ${
+          disabled
+            ? "opacity-50 cursor-not-allowed"
+            : "cursor-pointer hover:border-gray-400"
+        }`}
+      >
+        <div className="flex items-center flex-1 min-w-0">
+          <User className="w-4 h-4 text-gray-400 mr-2 flex-shrink-0" />
+          <span
+            className={`truncate ${
+              selectedOption ? "text-gray-900" : "text-gray-500"
+            }`}
+          >
+            {selectedOption ? selectedOption.label : placeholder}
+          </span>
+        </div>
+        <ChevronDown
+          className={`w-4 h-4 text-gray-400 transition-transform ${
+            isOpen ? "rotate-180" : ""
+          }`}
         />
-        {isFetching && (
-          <div className="absolute right-2 top-2.5 text-xs text-gray-400">
-            …
+      </button>
+
+      {/* ✅ Dropdown menu */}
+      {isOpen && !disabled && (
+        <>
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 z-10"
+            onClick={() => setIsOpen(false)}
+          />
+
+          {/* Dropdown content */}
+          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+            {/* Search input */}
+            <div className="p-3 border-b border-gray-200">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-gray-400" />
+                <input
+                  type="text"
+                  className="w-full pl-9 pr-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500"
+                  placeholder="Search patients..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  autoFocus
+                />
+              </div>
+              {isFetching && (
+                <div className="flex items-center mt-2 text-xs text-gray-500">
+                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-primary-500 mr-2"></div>
+                  Searching...
+                </div>
+              )}
+            </div>
+
+            {/* Patient options */}
+            <div className="max-h-48 overflow-y-auto">
+              {isLoading ? (
+                <div className="p-4 text-sm text-gray-500 text-center">
+                  Loading patients...
+                </div>
+              ) : options.length ? (
+                <>
+                  {options.map((option) => (
+                    <button
+                      key={option.id}
+                      type="button"
+                      onClick={() => handleSelect(option.id)}
+                      className="w-full px-4 py-3 text-left hover:bg-gray-50 focus:outline-none focus:bg-gray-50 flex items-center justify-between group"
+                    >
+                      <div className="flex items-center flex-1">
+                        <div className="w-8 h-8 bg-gray-100 rounded-full flex items-center justify-center mr-3">
+                          <User className="w-4 h-4 text-gray-600" />
+                        </div>
+                        <div>
+                          <div className="text-sm font-medium text-gray-900">
+                            {option.label}
+                          </div>
+                          <div className="text-xs text-gray-500">
+                            ID: {option.id}
+                          </div>
+                        </div>
+                      </div>
+                      {value === option.id && (
+                        <Check className="w-4 h-4 text-primary-600" />
+                      )}
+                    </button>
+                  ))}
+
+                  {/* Load more button */}
+                  {hasNextPage && (
+                    <button
+                      type="button"
+                      onClick={handleLoadMore}
+                      disabled={isFetching}
+                      className="w-full px-4 py-3 text-sm text-primary-600 hover:bg-gray-50 focus:outline-none focus:bg-gray-50 border-t border-gray-200 disabled:opacity-50"
+                    >
+                      {isFetching ? "Loading..." : "Load more patients"}
+                    </button>
+                  )}
+                </>
+              ) : (
+                <div className="p-4 text-sm text-gray-500 text-center">
+                  {search
+                    ? `No patients found for "${search}"`
+                    : "No patients found"}
+                </div>
+              )}
+            </div>
           </div>
-        )}
-      </div>
+        </>
+      )}
 
-      <div className="h-44 overflow-auto rounded border border-gray-200">
-        {isLoading ? (
-          <div className="p-3 text-sm text-gray-500">Loading...</div>
-        ) : options.length ? (
-          <>
-            {options.map((opt) => (
-              <button
-                key={opt.id}
-                type="button"
-                onClick={() => onChange(opt.id)}
-                className={`block w-full text-left px-3 py-2 text-sm hover:bg-gray-50 ${
-                  value === opt.id
-                    ? "bg-primary-50 text-primary-700"
-                    : "text-gray-800"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-            {hasNextPage && (
-              <button
-                type="button"
-                onClick={() => fetchNextPage()}
-                className="w-full px-3 py-2 text-sm text-gray-600 hover:bg-gray-50 border-t border-gray-100"
-              >
-                Load more…
-              </button>
-            )}
-          </>
-        ) : (
-          <div className="p-3 text-sm text-gray-500">No patients found.</div>
-        )}
-      </div>
-
-      {value && (
-        <div className="mt-2 text-xs text-gray-600">
-          Selected: {options.find((o) => o.id === value)?.label || value}
+      {/* ✅ Selected patient display (for debugging) */}
+      {value && selectedOption && (
+        <div className="mt-1 text-xs text-gray-600">
+          Selected: {selectedOption.label} (ID: {value})
         </div>
       )}
     </div>

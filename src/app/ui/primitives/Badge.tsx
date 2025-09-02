@@ -14,7 +14,7 @@ export default function Badge({
   size = "md",
 }: BadgeProps) {
   const variants = {
-    primary: "bg-primary-50 text-primary-700 border-primary-200",
+    primary: "bg-blue-50 text-blue-700 border-blue-200",
     success: "bg-success-50 text-success-700 border-success-200",
     warning: "bg-warning-50 text-warning-700 border-warning-200",
     danger: "bg-danger-50 text-danger-700 border-danger-200",

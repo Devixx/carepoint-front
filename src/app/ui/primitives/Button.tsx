@@ -29,13 +29,13 @@ export default function Button({
 
   const variants = {
     primary:
-      "bg-blue-700 text-white hover:bg-blue-700 focus:ring-primary-500 shadow-sm hover:shadow-md active:scale-95",
+      "bg-blue-700 text-white hover:bg-blue-700 focus:ring-blue-500 shadow-sm hover:shadow-md active:scale-95",
     secondary:
-      "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-primary-500 shadow-sm hover:shadow-md active:scale-95",
+      "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50 focus:ring-blue-500 shadow-sm hover:shadow-md active:scale-95",
     danger:
-      "bg-danger-500 text-white hover:bg-danger-600 focus:ring-danger-500 shadow-sm hover:shadow-md active:scale-95",
+      "bg-red-500 text-white hover:bg-danger-600 focus:ring-danger-500 shadow-sm hover:shadow-md active:scale-95",
     ghost:
-      "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-primary-500 active:scale-95",
+      "text-gray-600 hover:text-gray-900 hover:bg-gray-100 focus:ring-blue-500 active:scale-95",
   };
 
   const sizes = {

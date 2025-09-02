@@ -46,7 +46,7 @@ const Input = forwardRef<HTMLInputElement, InputProps>(
             type={type}
             className={clsx(
               "w-full px-4 py-3 text-sm border border-gray-200 rounded-lg transition-all duration-200",
-              "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-primary-100 focus:border-primary-500",
+              "placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-100 focus:border-blue-500",
               error &&
                 "border-danger-300 focus:border-danger-500 focus:ring-danger-100",
               leftIcon && "pl-10",

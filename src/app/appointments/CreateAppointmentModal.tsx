@@ -1,10 +1,11 @@
-// src/app/appointments/CreateAppointmentModal.tsx
+// Updated: src/app/appointments/CreateAppointmentModal.tsx - With PatientSelect Dropdown
 "use client";
 
 import { useState } from "react";
 import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
+import PatientSelect from "../calendar/PatientSelect";
 
 export interface CreateAppointmentPayload {
   title: string;
@@ -22,6 +23,7 @@ interface CreateAppointmentModalProps {
   onClose: () => void;
   onSubmit: (payload: CreateAppointmentPayload) => void;
   isLoading?: boolean;
+  error?: string;
 }
 
 export default function CreateAppointmentModal({
@@ -29,6 +31,7 @@ export default function CreateAppointmentModal({
   onClose,
   onSubmit,
   isLoading = false,
+  error,
 }: CreateAppointmentModalProps) {
   // Default times (1 hour from now, 30 minutes duration)
   const getDefaultTimes = () => {
@@ -89,7 +92,7 @@ export default function CreateAppointmentModal({
       newErrors.endTime = "End time is required";
     }
     if (!formData.patientId.trim()) {
-      newErrors.patientId = "Patient ID is required";
+      newErrors.patientId = "Patient selection is required";
     }
 
     // Validate time range
@@ -137,6 +140,7 @@ export default function CreateAppointmentModal({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -151,7 +155,14 @@ export default function CreateAppointmentModal({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-800 text-sm">{error}</div>
+          </div>
+        )}
+
+        {/* Appointment Details Section */}
         <div>
           <div className="flex items-center mb-4">
             <Calendar className="w-5 h-5 text-primary-600 mr-2" />
@@ -159,6 +170,7 @@ export default function CreateAppointmentModal({
               Appointment Details
             </h4>
           </div>
+
           <div className="space-y-4">
             <div>
               <label
@@ -185,26 +197,6 @@ export default function CreateAppointmentModal({
 
             <div>
               <label
-                htmlFor="description"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Description
-              </label>
-              <textarea
-                id="description"
-                rows={3}
-                value={formData.description}
-                onChange={(e) =>
-                  handleInputChange("description", e.target.value)
-                }
-                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
-                placeholder="Additional notes about the appointment"
-                disabled={isLoading}
-              />
-            </div>
-
-            <div>
-              <label
                 htmlFor="type"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
@@ -218,19 +210,40 @@ export default function CreateAppointmentModal({
                 disabled={isLoading}
               >
                 <option value="consultation">Consultation</option>
-                <option value="follow_up">Follow-up</option>
+                <option value="follow_up">Follow-up Visit</option>
                 <option value="routine_checkup">Routine Checkup</option>
               </select>
+            </div>
+
+            <div>
+              <label
+                htmlFor="description"
+                className="block text-sm font-medium text-gray-700 mb-2"
+              >
+                Notes (optional)
+              </label>
+              <textarea
+                id="description"
+                rows={3}
+                value={formData.description}
+                onChange={(e) =>
+                  handleInputChange("description", e.target.value)
+                }
+                className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm"
+                placeholder="Additional notes about the appointment"
+                disabled={isLoading}
+              />
             </div>
           </div>
         </div>
 
-        {/* Schedule */}
+        {/* Schedule Section */}
         <div>
           <div className="flex items-center mb-4">
             <Clock className="w-5 h-5 text-primary-600 mr-2" />
             <h4 className="text-lg font-medium text-gray-900">Schedule</h4>
           </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
@@ -278,7 +291,7 @@ export default function CreateAppointmentModal({
           </div>
         </div>
 
-        {/* Patient and Payment */}
+        {/* Patient & Payment Section */}
         <div>
           <div className="flex items-center mb-4">
             <User className="w-5 h-5 text-primary-600 mr-2" />
@@ -286,31 +299,25 @@ export default function CreateAppointmentModal({
               Patient & Payment
             </h4>
           </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
-                htmlFor="patientId"
+                htmlFor="patient"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Patient ID *
+                Patient *
               </label>
-              <input
-                type="text"
-                id="patientId"
-                value={formData.patientId}
-                onChange={(e) => handleInputChange("patientId", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.patientId ? "border-red-300" : "border-gray-300"
-                }`}
-                placeholder="Enter patient ID"
-                disabled={isLoading}
-              />
+              <div className={`${errors.patientId ? "border-red-300" : ""}`}>
+                <PatientSelect
+                  value={formData.patientId}
+                  onChange={(value) => handleInputChange("patientId", value)}
+                  placeholder="Select a patient..."
+                />
+              </div>
               {errors.patientId && (
                 <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
               )}
-              <p className="mt-1 text-xs text-gray-500">
-                This will be replaced with a patient selector in the future
-              </p>
             </div>
 
             <div>
@@ -319,7 +326,7 @@ export default function CreateAppointmentModal({
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
                 <DollarSign className="w-4 h-4 inline mr-1" />
-                Fee (€)
+                Consultation Fee (€)
               </label>
               <input
                 type="number"
@@ -329,7 +336,7 @@ export default function CreateAppointmentModal({
                 className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
                   errors.fee ? "border-red-300" : "border-gray-300"
                 }`}
-                placeholder="0.00"
+                placeholder="80"
                 min="0"
                 step="0.01"
                 disabled={isLoading}
@@ -342,7 +349,7 @@ export default function CreateAppointmentModal({
         </div>
 
         {/* Actions */}
-        <div className="flex justify-end space-x-3 pt-6 border-t border-gray-200">
+        <div className="flex flex-col sm:flex-row justify-end space-y-3 sm:space-y-0 sm:space-x-3 pt-6 border-t border-gray-200">
           <Button
             type="button"
             variant="secondary"

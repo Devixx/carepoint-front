@@ -1,4 +1,4 @@
-// src/app/appointments/AppointmentEditModal.tsx
+// Updated: src/app/appointments/AppointmentEditModal.tsx - With PatientSelect Dropdown
 "use client";
 
 import { useEffect, useState } from "react";
@@ -6,8 +6,7 @@ import { Appointment } from "../api/appointments";
 import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
-import { formatForDateTimeLocal } from "../calendar/timezone-utils";
-import { fromDateTimeLocalString } from "../calendar/date-core";
+import PatientSelect from "../calendar/PatientSelect";
 
 export interface AppointmentEditPayload {
   id: string;
@@ -27,6 +26,7 @@ interface AppointmentEditModalProps {
   onClose: () => void;
   onSubmit: (payload: AppointmentEditPayload) => void;
   isLoading?: boolean;
+  error?: string;
 }
 
 export default function AppointmentEditModal({
@@ -35,6 +35,7 @@ export default function AppointmentEditModal({
   onClose,
   onSubmit,
   isLoading = false,
+  error,
 }: AppointmentEditModalProps) {
   const [formData, setFormData] = useState({
     title: "",
@@ -52,14 +53,14 @@ export default function AppointmentEditModal({
   // Populate form when appointment changes
   useEffect(() => {
     if (open && appointment) {
-      const start = fromDateTimeLocalString(appointment.startTime);
-      const end = fromDateTimeLocalString(appointment.endTime);
+      const start = new Date(appointment.startTime);
+      const end = new Date(appointment.endTime);
 
       setFormData({
         title: appointment.title || "",
         description: appointment.description || "",
-        startTime: formatForDateTimeLocal(start),
-        endTime: formatForDateTimeLocal(end),
+        startTime: start.toISOString().slice(0, 16),
+        endTime: end.toISOString().slice(0, 16),
         type: appointment.type || "consultation",
         status: appointment.status || "pending",
         patientId: appointment.patientId || "",
@@ -83,7 +84,7 @@ export default function AppointmentEditModal({
       newErrors.endTime = "End time is required";
     }
     if (!formData.patientId.trim()) {
-      newErrors.patientId = "Patient ID is required";
+      newErrors.patientId = "Patient selection is required";
     }
 
     // Validate time range
@@ -126,6 +127,7 @@ export default function AppointmentEditModal({
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
+    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -142,7 +144,14 @@ export default function AppointmentEditModal({
       size="lg"
     >
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Basic Information */}
+        {/* Error Display */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+            <div className="text-red-800 text-sm">{error}</div>
+          </div>
+        )}
+
+        {/* Appointment Details */}
         <div>
           <div className="flex items-center mb-4">
             <Calendar className="w-5 h-5 text-primary-600 mr-2" />
@@ -249,7 +258,7 @@ export default function AppointmentEditModal({
           </div>
         </div>
 
-        {/* Appointment Type and Status */}
+        {/* Type & Status */}
         <div>
           <div className="flex items-center mb-4">
             <FileText className="w-5 h-5 text-primary-600 mr-2" />
@@ -311,22 +320,18 @@ export default function AppointmentEditModal({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
-                htmlFor="patientId"
+                htmlFor="patient"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Patient ID *
+                Patient *
               </label>
-              <input
-                type="text"
-                id="patientId"
-                value={formData.patientId}
-                onChange={(e) => handleInputChange("patientId", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.patientId ? "border-red-300" : "border-gray-300"
-                }`}
-                placeholder="Enter patient ID"
-                disabled={isLoading}
-              />
+              <div className={`${errors.patientId ? "border-red-300" : ""}`}>
+                <PatientSelect
+                  value={formData.patientId}
+                  onChange={(value) => handleInputChange("patientId", value)}
+                  placeholder="Select a patient..."
+                />
+              </div>
               {errors.patientId && (
                 <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
               )}

@@ -69,14 +69,14 @@ export default function PatientCard({
       {/* Main card - clickable area for edit */}
       <div
         onClick={() => onEdit(patient)}
-        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg hover:border-primary-300 transition-all duration-200 cursor-pointer"
+        className="bg-white rounded-lg border border-gray-200 p-6 hover:shadow-lg hover:border-blue-300 transition-all duration-200 cursor-pointer"
       >
         {/* Header with avatar and actions */}
         <div className="flex items-start justify-between mb-4">
           <div className="flex items-center space-x-3">
             {/* Avatar */}
-            <div className="w-12 h-12 bg-primary-100 rounded-full flex items-center justify-center">
-              <span className="text-primary-700 font-semibold text-sm">
+            <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+              <span className="text-blue-700 font-semibold text-sm">
                 {getInitials(patient.firstName, patient.lastName)}
               </span>
             </div>

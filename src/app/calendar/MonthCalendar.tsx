@@ -45,7 +45,7 @@ export default function MonthCalendar({
                 {events.slice(0, 3).map((e) => (
                   <div
                     key={e.id}
-                    className="truncate rounded bg-primary-50 text-primary-700 border border-primary-100 px-1 py-0.5 text-[11px]"
+                    className="truncate rounded bg-blue-50 text-blue-700 border border-blue-100 px-1 py-0.5 text-[11px]"
                   >
                     {e.title}
                   </div>

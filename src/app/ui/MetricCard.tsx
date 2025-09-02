@@ -23,7 +23,7 @@ export default function MetricCard({
           <div className="mt-1 text-2xl font-bold text-gray-900">{value}</div>
           {trend && <div className="mt-1 text-xs text-green-600">{trend}</div>}
         </div>
-        {icon && <div className="text-primary-600">{icon}</div>}
+        {icon && <div className="text-blue-600">{icon}</div>}
       </div>
     </Card>
   );

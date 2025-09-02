@@ -115,7 +115,7 @@ export default function CreatePatientModal({
         {/* Basic Information Section */}
         <div>
           <div className="flex items-center mb-4">
-            <User className="w-5 h-5 text-primary-600 mr-2" />
+            <User className="w-5 h-5 text-blue-600 mr-2" />
             <h4 className="text-lg font-medium text-gray-900">
               Basic Information
             </h4>
@@ -133,7 +133,7 @@ export default function CreatePatientModal({
                 id="firstName"
                 value={formData.firstName}
                 onChange={(e) => handleInputChange("firstName", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.firstName
                     ? "border-red-300 text-red-900 placeholder-red-300"
                     : "border-gray-300"
@@ -158,7 +158,7 @@ export default function CreatePatientModal({
                 id="lastName"
                 value={formData.lastName}
                 onChange={(e) => handleInputChange("lastName", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.lastName
                     ? "border-red-300 text-red-900 placeholder-red-300"
                     : "border-gray-300"
@@ -176,7 +176,7 @@ export default function CreatePatientModal({
         {/* Contact Information Section */}
         <div>
           <div className="flex items-center mb-4">
-            <Mail className="w-5 h-5 text-primary-600 mr-2" />
+            <Mail className="w-5 h-5 text-blue-600 mr-2" />
             <h4 className="text-lg font-medium text-gray-900">
               Contact Information
             </h4>
@@ -194,7 +194,7 @@ export default function CreatePatientModal({
                 id="email"
                 value={formData.email}
                 onChange={(e) => handleInputChange("email", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.email
                     ? "border-red-300 text-red-900 placeholder-red-300"
                     : "border-gray-300"
@@ -220,7 +220,7 @@ export default function CreatePatientModal({
                 id="phone"
                 value={formData.phone}
                 onChange={(e) => handleInputChange("phone", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 sm:text-sm ${
                   errors.phone
                     ? "border-red-300 text-red-900 placeholder-red-300"
                     : "border-gray-300"
