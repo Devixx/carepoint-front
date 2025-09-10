@@ -33,12 +33,6 @@ export async function listAppointments(params: {
   const res = await http.get<Paginated<Appointment>>("/appointments", {
     params,
   });
-  res.data.items.forEach((appt) => ({
-    ...appt,
-    patientFullName: [appt.patient.firstName, appt.patient.lastName]
-      .filter(Boolean)
-      .join(" "),
-  }));
   return res.data;
 }
 

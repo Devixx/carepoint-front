@@ -283,8 +283,8 @@ export default function DashboardPage() {
                         const { dateLabel, timeRange } =
                           formatAppointmentTime(appointment);
                         const patientName = appointment.patient
-                          ? `${appointment.patient.firstName || ""} ${
-                              appointment.patient.lastName || ""
+                          ? `${appointment?.patient?.firstName || ""} ${
+                              appointment?.patient?.lastName || ""
                             }`.trim()
                           : "Unknown Patient";
 

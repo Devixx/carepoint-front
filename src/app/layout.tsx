@@ -1,10 +1,14 @@
-// src/app/layout.tsx
+import type { Metadata } from "next";
+import { Inter } from "next/font/google";
+import { AuthProvider } from "./contexts/AuthContext";
 import "./globals.css";
 import Providers from "./providers";
 
-export const metadata = {
-  title: "CarePoint",
-  description: "Medical appointment management",
+const inter = Inter({ subsets: ["latin"] });
+
+export const metadata: Metadata = {
+  title: "CarePoint - Doctor Dashboard",
+  description: "Modern Doctor-Patient Appointment Management System",
 };
 
 export default function RootLayout({
@@ -12,11 +16,12 @@ export default function RootLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Ensure every page is wrapped by Providers so useToast() always has context
   return (
     <html lang="en">
-      <body className="antialiased bg-gray-50">
-        <Providers>{children}</Providers>
+      <body className={inter.className}>
+        <Providers>
+          <AuthProvider>{children}</AuthProvider>
+        </Providers>
       </body>
     </html>
   );

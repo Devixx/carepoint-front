@@ -1,6 +1,6 @@
 "use client";
 import React, { createContext, useContext, useState, useEffect } from "react";
-import axios from "axios";
+import { http } from "../lib/http";
 
 interface User {
   id: string;
@@ -8,12 +8,12 @@ interface User {
   firstName: string;
   lastName: string;
   role: string;
+  specialty?: string;
 }
 
 interface AuthContextType {
   user: User | null;
   login: (email: string, password: string) => Promise<void>;
-  register: (userData: never) => Promise<void>;
   logout: () => void;
   isLoading: boolean;
 }
@@ -27,51 +27,58 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
-    const token = localStorage.getItem("token");
+    const token = localStorage.getItem("doctor-token");
     if (token) {
-      axios.defaults.headers.common["Authorization"] = `Bearer ${token}`;
-      // Validate token and get user info
-      fetchUser();
+      // Set authorization header for all requests
+      http.defaults.headers.common["Authorization"] = `Bearer ${token}`;
+      // Try to validate token and get user info
+      validateToken();
+    } else {
+      setIsLoading(false);
     }
-    setIsLoading(false);
   }, []);
 
-  const fetchUser = async () => {
+  const validateToken = async () => {
     try {
-      const response = await axios.get("/api/auth/profile");
+      // You'll need to create this endpoint in your backend
+      const response = await http.get("/auth/profile");
       setUser(response.data);
     } catch (error) {
-      localStorage.removeItem("token");
-      delete axios.defaults.headers.common["Authorization"];
+      console.error("Token validation failed:", error);
+      // Clear invalid token
+      localStorage.removeItem("doctor-token");
+      delete http.defaults.headers.common["Authorization"];
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const login = async (email: string, password: string) => {
-    const response = await axios.post("/api/auth/login", { email, password });
-    const { access_token, user } = response.data;
+    try {
+      const response = await http.post("/auth/login", { email, password });
+      const { access_token, user } = response.data;
 
-    localStorage.setItem("token", access_token);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-    setUser(user);
-  };
+      // Store token with doctor prefix
+      localStorage.setItem("doctor-token", access_token);
 
-  const register = async (userData: never) => {
-    const response = await axios.post("/api/auth/register", userData);
-    const { access_token, user } = response.data;
+      // Set authorization header for future requests
+      http.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
 
-    localStorage.setItem("token", access_token);
-    axios.defaults.headers.common["Authorization"] = `Bearer ${access_token}`;
-    setUser(user);
+      setUser(user);
+    } catch (error) {
+      console.error("Login failed:", error);
+      throw error;
+    }
   };
 
   const logout = () => {
-    localStorage.removeItem("token");
-    delete axios.defaults.headers.common["Authorization"];
+    localStorage.removeItem("doctor-token");
+    delete http.defaults.headers.common["Authorization"];
     setUser(null);
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
+    <AuthContext.Provider value={{ user, login, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

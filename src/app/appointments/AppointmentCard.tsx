@@ -125,8 +125,8 @@ export default function AppointmentCard({
               <div className="flex items-center text-sm text-gray-600 mb-1">
                 <User className="w-4 h-4 mr-2 text-gray-400" />
                 <span>
-                  Patient ID: {appointment.patient.firstName}&nbsp;
-                  {appointment.patient.lastName}
+                  Patient ID: {appointment?.patient?.firstName}&nbsp;
+                  {appointment?.patient?.lastName}
                 </span>
               </div>
               {appointment.description && (

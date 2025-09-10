@@ -58,7 +58,6 @@ export default function AppointmentsPage() {
   const { data, isLoading, isFetching, error } = useQuery({
     queryKey: ["appointments", { page, limit, search: debounced }],
     queryFn: () => listAppointments({ page, limit }),
-    keepPreviousData: true,
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
   });
@@ -100,8 +99,7 @@ export default function AppointmentsPage() {
     data?.items?.filter((appointment) => {
       const matchesSearch =
         search === "" ||
-        appointment.title.toLowerCase().includes(search.toLowerCase()) ||
-        appointment.patientId.toLowerCase().includes(search.toLowerCase());
+        appointment.title.toLowerCase().includes(search.toLowerCase());
 
       const matchesStatus =
         statusFilter === "all" || appointment.status === statusFilter;
