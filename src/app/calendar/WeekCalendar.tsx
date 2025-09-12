@@ -27,10 +27,10 @@ export default function WeekCalendar({
   onEventClick?: (evt: EventItem) => void;
 }) {
   return (
-    <div className="grid grid-cols-7 gap-px bg-gray-200">
+    <div className="grid grid-cols-5 gap-2px bg-gray-200">
       {eventsByDay.map(({ date, events }) => (
         <div key={date.toISOString()} className="bg-white">
-          <div className="p-2 border-b bg-gray-50 text-center font-medium">
+          <div className="p-5 bg-gray-50 text-center font-medium">
             {date.toLocaleDateString(undefined, {
               weekday: "short",
               day: "numeric",
@@ -41,7 +41,6 @@ export default function WeekCalendar({
             events={events}
             minuteStep={15}
             onCreate={(start, end) => {
-              // FIX: include the date argument so the correct day is passed
               onCreate(date, start, end);
             }}
             onMove={onMove}

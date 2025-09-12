@@ -218,9 +218,11 @@ export default function DayCalendar({
   );
 
   // Generate hour labels
-  const hours = Array.from({ length: 24 }, (_, i) => {
-    const hour = i === 0 ? 12 : i > 12 ? i - 12 : i;
-    const ampm = i < 12 ? "AM" : "PM";
+  const hours = Array.from({ length: 13 }, (_, i) => {
+    const hourIndex = i + 7; // Start from 7 (7am)
+    const hour =
+      hourIndex === 12 ? 12 : hourIndex > 12 ? hourIndex - 12 : hourIndex;
+    const ampm = hourIndex < 12 ? "AM" : "PM";
     return `${hour} ${ampm}`;
   });
 
@@ -228,7 +230,7 @@ export default function DayCalendar({
     <div className="flex h-full bg-white">
       {/* Time gutter */}
       <div
-        className="flex-shrink-0 bg-gray-50 border-r border-gray-200"
+        className="flex-shrink-0 bg-gray-50 border-r border-gray-200 pt-5"
         style={{ width: TIME_GUTTER_WIDTH }}
       >
         {hours.map((hourLabel, i) => (
@@ -247,10 +249,10 @@ export default function DayCalendar({
         ref={containerRef}
         className="flex-1 relative overflow-y-auto cursor-pointer"
         onMouseDown={handleBackgroundMouseDown}
-        style={{ height: 24 * HOUR_HEIGHT }}
+        style={{ height: 13 * HOUR_HEIGHT }}
       >
         {/* Hour lines */}
-        {Array.from({ length: 25 }).map((_, i) => (
+        {Array.from({ length: 14 }).map((_, i) => (
           <div
             key={i}
             className="absolute left-0 right-0 border-t border-gray-200"
@@ -259,7 +261,7 @@ export default function DayCalendar({
         ))}
 
         {/* 15-minute indicators */}
-        {Array.from({ length: 24 * 4 }).map((_, i) => {
+        {Array.from({ length: 13 * 4 }).map((_, i) => {
           const minutes = i * 15;
           if (minutes % 60 === 0) return null; // Skip hour lines
           return (
@@ -344,7 +346,7 @@ export default function DayCalendar({
         })}
 
         {/* Time slot hover areas */}
-        {Array.from({ length: 24 * (60 / minuteStep) }).map((_, i) => {
+        {Array.from({ length: 13 * (60 / minuteStep) }).map((_, i) => {
           const minutes = i * minuteStep;
           return (
             <div

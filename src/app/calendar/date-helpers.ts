@@ -9,7 +9,7 @@ export function startOfISOWeek(d: Date) {
 }
 
 export function getWeekDates(start: Date) {
-  return Array.from({ length: 7 }).map((_, i) => {
+  return Array.from({ length: 5 }).map((_, i) => {
     const d = new Date(start);
     d.setDate(start.getDate() + i);
     return d;
