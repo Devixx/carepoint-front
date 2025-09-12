@@ -6,6 +6,8 @@ import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import PatientSelect from "../calendar/PatientSelect";
+import { Patient } from "../api/patients";
+import { useAuth } from "../contexts/AuthContext";
 
 export interface CreateAppointmentPayload {
   title: string;
@@ -15,6 +17,7 @@ export interface CreateAppointmentPayload {
   type?: "consultation" | "follow_up" | "routine_checkup";
   status?: "pending" | "confirmed";
   patientId: string;
+  doctorId: string;
   fee?: number;
 }
 
@@ -45,6 +48,8 @@ export default function CreateAppointmentModal({
     };
   };
 
+  const { user } = useAuth();
+
   const [formData, setFormData] = useState(() => {
     const times = getDefaultTimes();
     return {
@@ -54,8 +59,9 @@ export default function CreateAppointmentModal({
       endTime: times.end,
       type: "consultation" as const,
       status: "pending" as const,
-      patientId: "",
+      patient: {} as Patient,
       fee: "80",
+      docterId: user?.id,
     };
   });
 
@@ -71,8 +77,9 @@ export default function CreateAppointmentModal({
       endTime: times.end,
       type: "consultation",
       status: "pending",
-      patientId: "",
+      patient: {} as Patient,
       fee: "80",
+      docterId: user?.id,
     });
     setErrors({});
     onClose();
@@ -91,7 +98,7 @@ export default function CreateAppointmentModal({
     if (!formData.endTime) {
       newErrors.endTime = "End time is required";
     }
-    if (!formData.patientId.trim()) {
+    if (!formData.patient.id.trim()) {
       newErrors.patientId = "Patient selection is required";
     }
 
@@ -125,7 +132,7 @@ export default function CreateAppointmentModal({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
-
+    console.log("Submitting appointment with doctorId:", user?.id);
     onSubmit({
       title: formData.title.trim(),
       description: formData.description.trim() || undefined,
@@ -133,12 +140,13 @@ export default function CreateAppointmentModal({
       endTime: new Date(formData.endTime).toISOString(),
       type: formData.type,
       status: formData.status,
-      patientId: formData.patientId.trim(),
+      patientId: formData.patient.id.trim(),
       fee: formData.fee ? Number(formData.fee) : undefined,
+      doctorId: user!.id,
     });
   };
 
-  const handleInputChange = (field: string, value: string) => {
+  const handleInputChange = (field: string, value: string | Patient) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     // Clear error when user starts typing
     if (errors[field]) {
@@ -310,8 +318,8 @@ export default function CreateAppointmentModal({
               </label>
               <div className={`${errors.patientId ? "border-red-300" : ""}`}>
                 <PatientSelect
-                  value={formData.patientId}
-                  onChange={(value) => handleInputChange("patientId", value)}
+                  value={formData.patient}
+                  onChange={(value) => handleInputChange("patient", value)}
                   placeholder="Select a patient..."
                 />
               </div>

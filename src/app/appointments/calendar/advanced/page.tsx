@@ -45,6 +45,8 @@ import {
   normalizeApiEvents,
   toApiString,
 } from "@/app/calendar/date-core";
+import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
+import Button from "@/app/ui/primitives/Button";
 
 // API model coming from backend day endpoint
 type ApiItem = {
@@ -195,52 +197,71 @@ export default function AdvancedCalendarPage() {
       <div className="pl-64">
         <Header />
         <Card className="m-6 p-6 flex flex-col flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-3 mb-6">
-            <h1 className="text-2xl font-semibold">Calendar</h1>{" "}
-            <div className="mb-2 text-lg font-medium text-gray-700">
-              {cursorDate.toLocaleDateString(undefined, {
-                weekday: "long",
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              })}
+          <div className="bg-white rounded-lg border border-gray-200 shadow-sm p-6 mb-6">
+            {/* Header Row */}
+            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4 mb-4">
+              {/* Title */}
+              <div className="flex items-center gap-3">
+                <div className="p-2 bg-blue-50 rounded-lg">
+                  <Calendar className="w-6 h-6 text-blue-700" />
+                </div>
+                <h1 className="text-2xl font-semibold text-gray-900">
+                  Calendar
+                </h1>
+              </div>
+
+              {/* Current Date Display */}
+              <div className="text-lg font-medium text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
+                {cursorDate.toLocaleDateString(undefined, {
+                  weekday: "long",
+                  year: "numeric",
+                  month: "long",
+                  day: "numeric",
+                })}
+              </div>
             </div>
-            <div className="flex items-center justify-between gap-2">
-              <button onClick={goPrev} className="px-3 py-2 rounded border">
-                &larr;
-              </button>
-              <button onClick={goToday} className="btn">
-                Today
-              </button>
-              <button onClick={goNext} className="px-3 py-2 rounded border">
-                &rarr;
-              </button>
-            </div>
-            <div className="ml-2 flex rounded-lg border overflow-hidden">
-              <button
-                className={`px-3 py-2 text-sm ${
-                  view === "day" ? "bg-blue-700 text-white" : "bg-white"
-                }`}
-                onClick={() => setView("day")}
-              >
-                Day
-              </button>
-              <button
-                className={`px-3 py-2 text-sm ${
-                  view === "week" ? "bg-blue-700 text-white" : "bg-white"
-                }`}
-                onClick={() => setView("week")}
-              >
-                Week
-              </button>
-              <button
-                className={`px-3 py-2 text-sm ${
-                  view === "month" ? "bg-blue-700 text-white" : "bg-white"
-                }`}
-                onClick={() => setView("month")}
-              >
-                Month
-              </button>
+
+            {/* Controls Row */}
+            <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+              {/* Navigation Controls */}
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={goPrev}
+                  icon={<ChevronLeft className="w-4 h-4" />}
+                />
+
+                <Button variant="primary" size="sm" onClick={goToday}>
+                  Today
+                </Button>
+
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={goNext}
+                  icon={<ChevronRight className="w-4 h-4" />}
+                />
+              </div>
+
+              {/* View Toggle */}
+              <div className="flex rounded-lg border border-gray-300 overflow-hidden shadow-sm bg-white">
+                {["day", "week", "month"].map((viewType) => (
+                  <button
+                    key={viewType}
+                    className={`px-4 py-2 text-sm font-medium transition-all duration-200 first:border-l-0 border-l border-gray-300 ${
+                      view === viewType
+                        ? "bg-blue-700 text-white shadow-sm"
+                        : "bg-white text-gray-700 hover:bg-gray-50 hover:text-gray-900 active:scale-95"
+                    }`}
+                    onClick={() =>
+                      setView(viewType as "day" | "week" | "month")
+                    }
+                  >
+                    {viewType.charAt(0).toUpperCase() + viewType.slice(1)}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
 

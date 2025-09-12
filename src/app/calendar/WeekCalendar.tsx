@@ -8,6 +8,7 @@ export type EventItem = {
   start: Date;
   end: Date;
   patientId?: string;
+  docterId?: string;
   fee?: number;
   color?: string;
 };

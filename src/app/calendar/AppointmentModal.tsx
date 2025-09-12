@@ -13,6 +13,7 @@ export interface CalendarAppointmentPayload {
   startTime: string;
   endTime: string;
   patientId: string;
+  doctorUserId: string;
   fee?: number;
   type?: "consultation" | "follow_up" | "routine_checkup";
   description?: string;
@@ -27,6 +28,7 @@ function calendarPayloadToAppointmentPayload(
     startTime: payload.startTime,
     endTime: payload.endTime,
     patientId: payload.patientId,
+    doctorUserId: payload.doctorId,
     fee: payload.fee,
     type: payload.type,
     description: payload.description,

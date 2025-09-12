@@ -2,8 +2,9 @@
 "use client";
 import Input from "../ui/primitives/Input";
 import Button from "../ui/primitives/Button";
-import { useState } from "react";
+import { use, useState } from "react";
 import { createISOFromLocal } from "../calendar/timezone-utils";
+import { useAuth } from "../contexts/AuthContext";
 
 export type AppointmentFormValues = {
   title: string;
@@ -11,6 +12,7 @@ export type AppointmentFormValues = {
   endTime: string;
   patientId: string;
   fee?: number;
+  doctorId: string;
 };
 
 export default function AppointmentForm({
@@ -27,6 +29,9 @@ export default function AppointmentForm({
   const [end, setEnd] = useState(endDefault.toISOString().slice(0, 16));
   const [patientId, setPatientId] = useState("REPLACE_WITH_REAL_PATIENT_ID");
   const [fee, setFee] = useState<number | undefined>(80);
+  const { user } = useAuth();
+
+  console.log("Authenticated User in AppointmentForm:", user);
 
   return (
     <form
@@ -39,6 +44,7 @@ export default function AppointmentForm({
           endTime: createISOFromLocal(end),
           patientId,
           fee,
+          doctorId: user!.id,
         });
       }}
     >
