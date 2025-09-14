@@ -1,23 +1,26 @@
 version: 1
 frontend:
+  runtime-versions:
+    nodejs: 20
   phases:
     preBuild:
       commands:
-        - echo "Node before nvm:" && node -v || true
-        - . ~/.nvm/nvm.sh || . /root/.nvm/nvm.sh || true
-        - nvm install 20
-        - nvm use 20
-        - node -v
-        - npm -v
-        - npm ci
+        - node -v || true
+        - npm -v || true
+        # Prefer Corepack if available (Node 20+), otherwise fall back to global pnpm
+        - corepack enable || true
+        - corepack prepare pnpm@9 --activate || npm i -g pnpm
+        - pnpm -v
+        - pnpm install --frozen-lockfile
     build:
       commands:
-        - npm run build
+        - pnpm build
   artifacts:
     baseDirectory: .next
     files:
       - "**/*"
   cache:
     paths:
+      - ~/.pnpm-store/**/*
       - node_modules/**/*
       - .next/cache/**/*
