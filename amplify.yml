@@ -1,0 +1,23 @@
+version: 1
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - echo "Node before nvm:" && node -v || true
+        - . ~/.nvm/nvm.sh || . /root/.nvm/nvm.sh || true
+        - nvm install 20
+        - nvm use 20
+        - node -v
+        - npm -v
+        - npm ci
+    build:
+      commands:
+        - npm run build
+  artifacts:
+    baseDirectory: .next
+    files:
+      - "**/*"
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
