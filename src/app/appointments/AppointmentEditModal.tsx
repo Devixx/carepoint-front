@@ -1,13 +1,14 @@
 // Updated: src/app/appointments/AppointmentEditModal.tsx - With PatientSelect Dropdown
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Appointment } from "../api/appointments";
 import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import PatientSelect from "../calendar/PatientSelect";
 import { Patient } from "../api/patients";
+import { fromApiDate, toApiDate, debugDateConversion } from "../utils/date-utils";
 
 export interface AppointmentEditPayload {
   id: string;
@@ -38,6 +39,21 @@ export default function AppointmentEditModal({
   isLoading = false,
   error,
 }: AppointmentEditModalProps) {
+  const normalizePatient = useCallback(
+    (patient?: Patient | null): Patient | undefined => {
+      if (!patient || !patient.id) return undefined;
+      return {
+        ...patient,
+        label:
+          patient.label ??
+          ([patient.firstName, patient.lastName].filter(Boolean).join(" ") ||
+            patient.email ||
+            patient.id),
+      };
+    },
+    []
+  );
+
   const [formData, setFormData] = useState({
     title: "",
     description: "",
@@ -45,7 +61,7 @@ export default function AppointmentEditModal({
     endTime: "",
     type: "consultation" as const,
     status: "pending" as const,
-    patient: {} as Patient,
+    patient: undefined as Patient | undefined,
     fee: "",
   });
 
@@ -60,16 +76,16 @@ export default function AppointmentEditModal({
       setFormData({
         title: appointment.title || "",
         description: appointment.description || "",
-        startTime: start.toISOString().slice(0, 16),
-        endTime: end.toISOString().slice(0, 16),
+        startTime: fromApiDate(appointment.startTime),
+        endTime: fromApiDate(appointment.endTime),
         type: appointment.type || "consultation",
         status: appointment.status || "pending",
-        patient: appointment.patient || "",
+        patient: normalizePatient(appointment.patient),
         fee: appointment.fee?.toString() || "",
       });
       setErrors({});
     }
-  }, [open, appointment]);
+  }, [open, appointment, normalizePatient]);
 
   // Form validation
   const validateForm = (): boolean => {
@@ -84,7 +100,7 @@ export default function AppointmentEditModal({
     if (!formData.endTime) {
       newErrors.endTime = "End time is required";
     }
-    if (!formData.patient) {
+    if (!formData.patient?.id) {
       newErrors.patientId = "Patient selection is required";
     }
 
@@ -113,24 +129,42 @@ export default function AppointmentEditModal({
     e.preventDefault();
     if (!appointment || !validateForm()) return;
 
+    // Convert datetime-local strings to UTC ISO strings using centralized utility
+    const startTimeISO = toApiDate(formData.startTime);
+    const endTimeISO = toApiDate(formData.endTime);
+    
+    // Debug date conversion
+    debugDateConversion(
+      "Edit Appointment",
+      formData.startTime,
+      startTimeISO,
+      new Date(formData.startTime)
+    );
+
     onSubmit({
       id: appointment.id,
       title: formData.title.trim(),
       description: formData.description.trim() || undefined,
-      startTime: new Date(formData.startTime).toISOString(),
-      endTime: new Date(formData.endTime).toISOString(),
+      startTime: startTimeISO,
+      endTime: endTimeISO,
       type: formData.type,
       status: formData.status,
-      patient: formData.patient,
+      patient: formData.patient!,
       fee: formData.fee ? Number(formData.fee) : undefined,
     });
   };
 
   const handleInputChange = (field: string, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
+    }
+  };
+
+  const handlePatientChange = (patient: Patient) => {
+    setFormData((prev) => ({ ...prev, patient }));
+    if (errors.patientId) {
+      setErrors((prev) => ({ ...prev, patientId: "" }));
     }
   };
 
@@ -203,6 +237,32 @@ export default function AppointmentEditModal({
                 disabled={isLoading}
               />
             </div>
+          </div>
+        </div>
+
+        {/* Patient */}
+        <div>
+          <div className="flex items-center mb-4">
+            <User className="w-5 h-5 text-primary-600 mr-2" />
+            <h4 className="text-lg font-medium text-gray-900">Patient</h4>
+          </div>
+          <div>
+            <label
+              htmlFor="patient"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Patient *
+            </label>
+            <div className={`${errors.patientId ? "border-red-300" : ""}`}>
+              <PatientSelect
+                value={formData.patient}
+                onChange={handlePatientChange}
+                placeholder="Select a patient..."
+              />
+            </div>
+            {errors.patientId && (
+              <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
+            )}
           </div>
         </div>
 
@@ -310,59 +370,36 @@ export default function AppointmentEditModal({
           </div>
         </div>
 
-        {/* Patient and Fee */}
+        {/* Payment */}
         <div>
           <div className="flex items-center mb-4">
-            <User className="w-5 h-5 text-primary-600 mr-2" />
-            <h4 className="text-lg font-medium text-gray-900">
-              Patient & Payment
-            </h4>
+            <DollarSign className="w-5 h-5 text-primary-600 mr-2" />
+            <h4 className="text-lg font-medium text-gray-900">Payment</h4>
           </div>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="patient"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Patient *
-              </label>
-              <div className={`${errors.patientId ? "border-red-300" : ""}`}>
-                <PatientSelect
-                  value={formData.patient}
-                  onChange={(value) => handleInputChange("patient", value)}
-                  placeholder="Select a patient..."
-                />
-              </div>
-              {errors.patientId && (
-                <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="fee"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Fee (€)
-              </label>
-              <input
-                type="number"
-                id="fee"
-                value={formData.fee}
-                onChange={(e) => handleInputChange("fee", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.fee ? "border-red-300" : "border-gray-300"
-                }`}
-                placeholder="0.00"
-                min="0"
-                step="0.01"
-                disabled={isLoading}
-              />
-              {errors.fee && (
-                <p className="mt-2 text-sm text-red-600">{errors.fee}</p>
-              )}
-            </div>
+          <div>
+            <label
+              htmlFor="fee"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              <DollarSign className="w-4 h-4 inline mr-1" />
+              Fee (€)
+            </label>
+            <input
+              type="number"
+              id="fee"
+              value={formData.fee}
+              onChange={(e) => handleInputChange("fee", e.target.value)}
+              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                errors.fee ? "border-red-300" : "border-gray-300"
+              }`}
+              placeholder="0.00"
+              min="0"
+              step="0.01"
+              disabled={isLoading}
+            />
+            {errors.fee && (
+              <p className="mt-2 text-sm text-red-600">{errors.fee}</p>
+            )}
           </div>
         </div>
 

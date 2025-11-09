@@ -8,12 +8,13 @@ import { useEffect, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAppointment,
-  deleteAppointment,
+  deleteAppointment as deleteAppointmentApi,
   listAppointments,
   updateAppointment,
   Appointment,
 } from "../api/appointments";
 import { Plus, Search, Calendar, AlertCircle, Filter } from "lucide-react";
+import { getDateKeyFromApi } from "../utils/date-utils";
 
 // Import new components
 import AppointmentCard from "./AppointmentCard";
@@ -56,7 +57,7 @@ export default function AppointmentsPage() {
 
   // Appointments query
   const { data, isLoading, isFetching, error } = useQuery({
-    queryKey: ["appointments", { page, limit, search: debounced }],
+    queryKey: ["appointments", { page, limit }],
     queryFn: () => listAppointments({ page, limit }),
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 5, // 5 minutes
@@ -64,10 +65,56 @@ export default function AppointmentsPage() {
 
   // Create appointment mutation
   const createMut = useMutation({
-    mutationFn: (payload: CreateAppointmentPayload) =>
-      createAppointment(payload),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["appointments"] });
+    mutationFn: (payload: CreateAppointmentPayload) => {
+      // Transform payload: API expects doctorUserId (not doctorId)
+      const apiPayload: any = {
+        title: payload.title,
+        startTime: payload.startTime,
+        endTime: payload.endTime,
+        patientId: payload.patientId,
+        doctorUserId: payload.doctorId, // Transform doctorId to doctorUserId
+        fee: payload.fee,
+        type: payload.type,
+        status: payload.status,
+        description: payload.description,
+      };
+      console.log("🚀 Creating appointment with payload:", apiPayload);
+      return createAppointment(apiPayload);
+    },
+    onSuccess: async (data) => {
+      console.log("✅ Appointment created successfully:", data);
+      
+      if (data?.startTime) {
+        const appointmentDate = new Date(data.startTime);
+        console.log("📅 Appointment date/time details:", {
+          apiResponse: data.startTime,
+          parsedUTC: appointmentDate.toISOString(),
+          displayLocal: appointmentDate.toLocaleString(),
+          localTime: appointmentDate.toLocaleTimeString(),
+          timezone: Intl.DateTimeFormat().resolvedOptions().timeZone,
+          offset: appointmentDate.getTimezoneOffset(),
+        });
+        
+        // Invalidate calendar queries using LOCAL date key (since calendar uses local dates)
+        const localDateKey = getDateKeyFromApi(data.startTime);
+        console.log("🗓️ Invalidating calendar for LOCAL date key:", localDateKey);
+        await qc.invalidateQueries({ queryKey: ["calendar-day", localDateKey] });
+      }
+      
+      // Invalidate all calendar queries to ensure all views update
+      await qc.invalidateQueries({ queryKey: ["calendar-day"] });
+      
+      // Invalidate and refetch appointments list - this will trigger a refetch
+      console.log("📋 Invalidating appointments list...");
+      await qc.invalidateQueries({ queryKey: ["appointments"] });
+      
+      // Force an immediate refetch
+      await qc.refetchQueries({ 
+        queryKey: ["appointments", { page, limit }],
+        exact: true 
+      });
+      
+      console.log("✨ All queries invalidated and refetched");
       setOpenCreate(false);
     },
   });
@@ -84,7 +131,7 @@ export default function AppointmentsPage() {
 
   // Delete appointment mutation
   const deleteMut = useMutation({
-    mutationFn: deleteAppointment,
+    mutationFn: deleteAppointmentApi,
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["appointments"] });
       setDeleteAppointment(null);
@@ -304,7 +351,7 @@ export default function AppointmentsPage() {
             open={openCreate}
             onClose={() => setOpenCreate(false)}
             onSubmit={(payload) => createMut.mutate(payload)}
-            isLoading={createMut.isLoading}
+            isLoading={createMut.isPending}
           />
 
           {/* Edit Appointment Modal */}
@@ -313,7 +360,7 @@ export default function AppointmentsPage() {
             appointment={editAppointment}
             onClose={() => setEditAppointment(null)}
             onSubmit={(payload) => updateMut.mutate(payload)}
-            isLoading={updateMut.isLoading}
+            isLoading={updateMut.isPending}
           />
 
           {/* View Appointment Details (reuse edit modal for now) */}
@@ -327,7 +374,7 @@ export default function AppointmentsPage() {
                 setEditAppointment(viewAppointment);
                 updateMut.mutate(payload);
               }}
-              isLoading={updateMut.isLoading}
+              isLoading={updateMut.isPending}
             />
           )}
 
@@ -337,7 +384,7 @@ export default function AppointmentsPage() {
             title="Cancel Appointment"
             description={
               deleteAppointment
-                ? `Are you sure you want to cancel the appointment "${deleteAppointment.title}" with patient ${deleteAppointment.patientId}? This action cannot be undone.`
+                ? `Are you sure you want to cancel the appointment "${deleteAppointment.title}" with patient ${deleteAppointment.patient?.firstName} ${deleteAppointment.patient?.lastName}? This action cannot be undone.`
                 : ""
             }
             confirmText="Cancel Appointment"

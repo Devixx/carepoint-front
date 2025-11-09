@@ -1,44 +1,20 @@
-// src/app/calendar/DayCalendar.tsx
+// src/app/calendar/DayCalendar.tsx - Teams/Outlook Style Fixed Version
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
-import {
-  setTime,
-  minutesSinceStartOfDay,
-  withinDayRange,
-  clampToStep,
-} from "./utils";
-import type { EventItem } from "./WeekCalendar";
+import { useRef, useState, useCallback } from "react";
 import {
   CalendarEvent,
-  debugDateInfo,
   getMidnight,
   getMinutesSinceMidnight,
   setTimeOnDate,
-} from "./date-core";
+} from "../utils/date-core";
+import { formatTime, formatTimeRange } from "../utils/calendar-utils";
 
-interface DragStateNone {
-  type: "none";
+interface TimeSlot {
+  start: Date;
+  end: Date;
+  minutes: number;
 }
-interface DragStateCreate {
-  type: "create";
-  startMin: number;
-  endMin: number;
-  isDragging: boolean;
-}
-interface DragStateMove {
-  type: "move";
-  eventId: string;
-  grabOffsetMin: number;
-  initialStartMin: number;
-  currentStartMin: number;
-  duration: number;
-}
-
-type DragState = DragStateNone | DragStateCreate | DragStateMove;
-
-const HOUR_HEIGHT = 48; // Each hour = 48px for better visual spacing
-const TIME_GUTTER_WIDTH = 60;
 
 export default function DayCalendar({
   date,
@@ -46,200 +22,128 @@ export default function DayCalendar({
   onCreate,
   onMove,
   onEventClick,
-  minuteStep = 15,
 }: {
   date: Date;
   events: CalendarEvent[];
   onCreate: (start: Date, end: Date) => void;
   onMove: (id: string, newStart: Date, newEnd: Date) => void;
   onEventClick?: (evt: CalendarEvent) => void;
-  minuteStep?: number;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [drag, setDrag] = useState<DragState>({ type: "none" });
-  const [hoveredTimeSlot, setHoveredTimeSlot] = useState<number | null>(null);
+  const [selectedTimeSlot, setSelectedTimeSlot] = useState<number | null>(null);
+  const [clickCount, setClickCount] = useState(0);
+  const [lastClickTime, setLastClickTime] = useState(0);
 
-  // Convert clientY to minutes since midnight
-  const yToMinutes = useCallback(
-    (clientY: number): number => {
-      const container = containerRef.current;
-      if (!container) return 0;
+  // Constants for Teams/Outlook style
+  const HOUR_HEIGHT = 48;
+  const TIME_SLOT_DURATION = 30; // 30 minutes per slot
+  const START_HOUR = 7; // 7 AM
+  const END_HOUR = 19; // 7 PM
+  const TOTAL_HOURS = END_HOUR - START_HOUR; // 12 hours
+  const SLOTS_PER_HOUR = 60 / TIME_SLOT_DURATION; // 2 slots per hour
+  const TOTAL_SLOTS = TOTAL_HOURS * SLOTS_PER_HOUR; // 24 slots total
 
-      const rect = container.getBoundingClientRect();
-      const y = Math.max(0, clientY - rect.top);
-      const minutes = (y / HOUR_HEIGHT) * 60;
-      return clampToStep(Math.min(minutes, 24 * 60 - minuteStep), minuteStep);
-    },
-    [minuteStep]
-  );
+  // Generate time slots (7 AM to 7 PM in 30-minute intervals)
+  const generateTimeSlots = useCallback((): TimeSlot[] => {
+    const slots: TimeSlot[] = [];
+    const baseDate = getMidnight(date);
 
-  // Convert minutes to Y position
-  const minutesToY = useCallback((minutes: number): number => {
-    return (minutes / 60) * HOUR_HEIGHT;
-  }, []);
+    for (let i = 0; i < TOTAL_SLOTS; i++) {
+      const minutes = START_HOUR * 60 + i * TIME_SLOT_DURATION;
+      const startTime = setTimeOnDate(
+        baseDate,
+        Math.floor(minutes / 60),
+        minutes % 60
+      );
+      const endTime = setTimeOnDate(
+        baseDate,
+        Math.floor((minutes + TIME_SLOT_DURATION) / 60),
+        (minutes + TIME_SLOT_DURATION) % 60
+      );
 
-  // Handle background mouse events for creating new events
-  const handleBackgroundMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      if (drag.type !== "none" || e.button !== 0) return;
-      e.preventDefault();
-
-      const startMin = yToMinutes(e.clientY);
-      setDrag({
-        type: "create",
-        startMin,
-        endMin: startMin + minuteStep,
-        isDragging: true,
+      slots.push({
+        start: startTime,
+        end: endTime,
+        minutes: minutes,
       });
-    },
-    [drag.type, yToMinutes, minuteStep]
-  );
-
-  // Handle event mouse down for moving
-  const handleEventMouseDown = useCallback(
-    (e: React.MouseEvent, eventId: string) => {
-      if (e.button !== 0) return;
-      e.preventDefault();
-      e.stopPropagation();
-
-      const evt = events.find((ev) => ev.id === eventId);
-      if (!evt) return;
-
-      const clickY = yToMinutes(e.clientY);
-      const eventStartMin = getMinutesSinceMidnight(evt.start);
-      const duration = getMinutesSinceMidnight(evt.end) - eventStartMin;
-
-      setDrag({
-        type: "move",
-        eventId,
-        grabOffsetMin: clickY - eventStartMin,
-        initialStartMin: eventStartMin,
-        currentStartMin: eventStartMin,
-        duration,
-      });
-    },
-    [events, yToMinutes]
-  );
-
-  // Global mouse handlers
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (drag.type === "create") {
-        const currentMin = yToMinutes(e.clientY);
-        const endMin = Math.max(currentMin, drag.startMin + minuteStep);
-        setDrag((prev) =>
-          prev.type === "create" ? { ...prev, endMin } : prev
-        );
-      } else if (drag.type === "move") {
-        const currentMin = yToMinutes(e.clientY);
-        const newStartMin = withinDayRange(currentMin - drag.grabOffsetMin);
-        setDrag((prev) =>
-          prev.type === "move"
-            ? { ...prev, currentStartMin: newStartMin }
-            : prev
-        );
-      }
-    };
-
-    const handleMouseUp = (e: MouseEvent) => {
-      if (drag.type === "create") {
-        const { startMin, endMin } = drag;
-        if (endMin > startMin) {
-          const base = getMidnight(date); // ✅ Use Single Source of Truth
-          const start = setTimeOnDate(
-            base,
-            Math.floor(startMin / 60),
-            startMin % 60
-          ); // ✅ Use Single Source of Truth
-          const end = setTimeOnDate(base, Math.floor(endMin / 60), endMin % 60); // ✅ Use Single Source of Truth
-
-          debugDateInfo(start, "Create Start");
-          debugDateInfo(end, "Create End");
-
-          onCreate(start, end);
-        }
-      } else if (drag.type === "move") {
-        const { eventId, currentStartMin, duration } = drag;
-        const newEndMin = Math.min(currentStartMin + duration, 24 * 60);
-        const base = getMidnight(date); // ✅ Use Single Source of Truth
-        const newStart = setTimeOnDate(
-          base,
-          Math.floor(currentStartMin / 60),
-          currentStartMin % 60
-        ); // ✅ Use Single Source of Truth
-        const newEnd = setTimeOnDate(
-          base,
-          Math.floor(newEndMin / 60),
-          newEndMin % 60
-        ); // ✅ Use Single Source of Truth
-
-        debugDateInfo(newStart, "Move Start");
-        debugDateInfo(newEnd, "Move End");
-
-        onMove(eventId, newStart, newEnd);
-      }
-      setDrag({ type: "none" });
-    };
-
-    if (drag.type !== "none") {
-      document.addEventListener("mousemove", handleMouseMove);
-      document.addEventListener("mouseup", handleMouseUp);
-      return () => {
-        document.removeEventListener("mousemove", handleMouseMove);
-        document.removeEventListener("mouseup", handleMouseUp);
-      };
     }
-  }, [drag, yToMinutes, minuteStep, date, onCreate, onMove]);
+    return slots;
+  }, [date]);
 
-  // ✅ Handle event clicks - SIMPLIFIED with Single Source of Truth
+  const timeSlots = generateTimeSlots();
+
+  // Handle time slot click (Teams/Outlook style double-click)
+  const handleTimeSlotClick = useCallback(
+    (slotIndex: number) => {
+      const now = Date.now();
+      const timeDiff = now - lastClickTime;
+
+      if (
+        timeDiff < 500 &&
+        clickCount === 1 &&
+        selectedTimeSlot === slotIndex
+      ) {
+        // Double click detected - open modal
+        const slot = timeSlots[slotIndex];
+        onCreate(slot.start, slot.end);
+        setSelectedTimeSlot(null);
+        setClickCount(0);
+      } else {
+        // First click - highlight slot
+        setSelectedTimeSlot(slotIndex);
+        setClickCount(1);
+        setLastClickTime(now);
+
+        // Clear selection after 2 seconds if no second click
+        setTimeout(() => {
+          setClickCount(0);
+          if (selectedTimeSlot === slotIndex) {
+            setSelectedTimeSlot(null);
+          }
+        }, 2000);
+      }
+    },
+    [selectedTimeSlot, clickCount, lastClickTime, timeSlots, onCreate]
+  );
+
+  // Handle event click
   const handleEventClick = useCallback(
     (e: React.MouseEvent, evt: CalendarEvent) => {
-      if (drag.type !== "none") return;
       e.stopPropagation();
-
-      // Debug in development
-      debugDateInfo(evt.start, "Click Event Start");
-      debugDateInfo(evt.end, "Click Event End");
-
-      // No cloning needed - data is already normalized and consistent
       onEventClick?.(evt);
     },
-    [drag.type, onEventClick]
-  );
-
-  // Handle mouse enter/leave for time slot hover
-  const handleTimeSlotHover = useCallback(
-    (minutes: number | null) => {
-      if (drag.type === "none") {
-        setHoveredTimeSlot(minutes);
-      }
-    },
-    [drag.type]
+    [onEventClick]
   );
 
   // Generate hour labels
-  const hours = Array.from({ length: 13 }, (_, i) => {
-    const hourIndex = i + 7; // Start from 7 (7am)
+  const hourLabels = Array.from({ length: TOTAL_HOURS + 1 }, (_, i) => {
+    const hourIndex = i + START_HOUR;
     const hour =
       hourIndex === 12 ? 12 : hourIndex > 12 ? hourIndex - 12 : hourIndex;
     const ampm = hourIndex < 12 ? "AM" : "PM";
     return `${hour} ${ampm}`;
   });
 
+  // Convert minutes to Y position
+  const minutesToY = useCallback((minutes: number): number => {
+    const relativeMinutes = minutes - START_HOUR * 60;
+    return (relativeMinutes / 60) * HOUR_HEIGHT;
+  }, []);
+
   return (
-    <div className="flex h-full bg-white">
+    <div className="flex h-full bg-white border border-gray-200 rounded-lg overflow-hidden">
       {/* Time gutter */}
       <div
-        className="flex-shrink-0 bg-gray-50 border-r border-gray-200 pt-5"
-        style={{ width: TIME_GUTTER_WIDTH }}
+        className="w-16 bg-gray-50 border-r border-gray-200 flex-shrink-0"
+        style={{ minWidth: "60px" }}
       >
-        {hours.map((hourLabel, i) => (
+        {hourLabels.map((hourLabel, i) => (
           <div
             key={i}
-            className="relative text-xs text-gray-600 pr-2 text-right"
+            className="text-xs text-gray-600 text-center py-1 border-b border-gray-100"
             style={{ height: HOUR_HEIGHT }}
           >
-            <span className="absolute -top-2 right-2">{hourLabel}</span>
+            {hourLabel}
           </div>
         ))}
       </div>
@@ -247,120 +151,108 @@ export default function DayCalendar({
       {/* Calendar grid */}
       <div
         ref={containerRef}
-        className="flex-1 relative overflow-y-auto cursor-pointer"
-        onMouseDown={handleBackgroundMouseDown}
-        style={{ height: 13 * HOUR_HEIGHT }}
+        className="flex-1 relative overflow-hidden"
+        style={{ height: TOTAL_HOURS * HOUR_HEIGHT }}
       >
-        {/* Hour lines */}
-        {Array.from({ length: 14 }).map((_, i) => (
+        {/* Hour grid lines */}
+        {Array.from({ length: TOTAL_HOURS + 1 }).map((_, i) => (
           <div
-            key={i}
-            className="absolute left-0 right-0 border-t border-gray-200"
-            style={{ top: i * HOUR_HEIGHT }}
+            key={`hour-${i}`}
+            className="absolute w-full border-b border-gray-200"
+            style={{
+              top: i * HOUR_HEIGHT,
+              height: 1,
+            }}
           />
         ))}
 
-        {/* 15-minute indicators */}
-        {Array.from({ length: 13 * 4 }).map((_, i) => {
-          const minutes = i * 15;
-          if (minutes % 60 === 0) return null; // Skip hour lines
-          return (
-            <div
-              key={i}
-              className="absolute left-0 w-2 border-t border-gray-100"
-              style={{ top: minutesToY(minutes) }}
-            />
-          );
-        })}
-
-        {/* Hover indicator */}
-        {hoveredTimeSlot !== null && drag.type === "none" && (
+        {/* 30-minute grid lines */}
+        {timeSlots.map((slot, i) => (
           <div
-            className="absolute left-0 right-0 bg-blue-50 border border-blue-200 opacity-50"
+            key={`slot-${i}`}
+            className={`absolute w-full border-b cursor-pointer transition-colors duration-150 ${
+              selectedTimeSlot === i
+                ? "bg-blue-100 border-blue-300"
+                : "border-gray-100 hover:bg-gray-50"
+            }`}
             style={{
-              top: minutesToY(hoveredTimeSlot),
-              height: minutesToY(minuteStep),
+              top: minutesToY(slot.minutes),
+              height: HOUR_HEIGHT / SLOTS_PER_HOUR,
             }}
-          />
-        )}
-
-        {/* Creation preview */}
-        {drag.type === "create" && (
-          <div
-            className="absolute left-1 right-1 bg-blue-200 border-2 border-blue-400 rounded opacity-80 flex items-center justify-center text-sm font-medium text-blue-800"
-            style={{
-              top: minutesToY(drag.startMin),
-              height: Math.max(minutesToY(drag.endMin - drag.startMin), 20),
-            }}
+            onClick={() => handleTimeSlotClick(i)}
+            title={formatTimeRange(slot.start, slot.end)}
           >
-            New Event
+            {/* Time slot indicator */}
+            <div className="absolute left-0 top-0 w-2 h-full bg-transparent group-hover:bg-blue-200" />
+
+            {/* Selected slot highlight */}
+            {selectedTimeSlot === i && (
+              <div className="absolute inset-0 bg-blue-50 border-l-2 border-blue-500 flex items-center justify-center">
+                <span className="text-xs text-blue-600 font-medium">
+                  Click again to create appointment
+                </span>
+              </div>
+            )}
           </div>
-        )}
+        ))}
 
         {/* Events */}
         {events.map((evt) => {
-          let startMin = getMinutesSinceMidnight(evt.start);
-          const duration = getMinutesSinceMidnight(evt.end) - startMin;
+          const startMin = getMinutesSinceMidnight(evt.start);
+          const endMin = getMinutesSinceMidnight(evt.end);
+          const duration = endMin - startMin;
 
-          // If this event is being dragged, use the drag position
-          if (drag.type === "move" && drag.eventId === evt.id) {
-            startMin = drag.currentStartMin;
+          // Only show events within our time range
+          if (startMin < START_HOUR * 60 || startMin >= END_HOUR * 60) {
+            return null;
           }
 
-          const isDragging = drag.type === "move" && drag.eventId === evt.id;
           const top = minutesToY(startMin);
-          const height = Math.max(minutesToY(duration), 20);
+          const height = Math.max((duration / 60) * HOUR_HEIGHT, 20);
 
           return (
             <div
               key={evt.id}
-              className={`
-                absolute left-1 right-1 px-2 py-1 rounded shadow-sm text-xs cursor-pointer
-                transition-all duration-150 select-none z-20 relative
-                ${
-                  isDragging
-                    ? "bg-blue-300 border-2 border-blue-500 shadow-lg z-30 transform scale-105"
-                    : "bg-blue-200 border border-blue-300 hover:bg-blue-250 hover:shadow-md"
-                }
-              `}
-              style={{ top, height }}
-              onMouseDown={(e) => handleEventMouseDown(e, evt.id)}
+              className="absolute left-1 right-1 bg-blue-500 text-white rounded px-2 py-1 cursor-pointer shadow-sm hover:shadow-md transition-shadow duration-150 z-10"
+              style={{
+                top: top,
+                height: height,
+              }}
               onClick={(e) => handleEventClick(e, evt)}
-              onMouseEnter={() => !isDragging && handleTimeSlotHover(startMin)}
-              onMouseLeave={() => !isDragging && handleTimeSlotHover(null)}
+              title={`${evt.title} - ${formatTime(evt.start)}`}
             >
-              <div className="font-medium text-blue-900 truncate">
-                {evt.title}
-              </div>
+              <div className="text-xs font-medium truncate">{evt.title}</div>
               {height > 30 && (
-                <div className="text-blue-700 text-xs">
-                  {new Date(evt.start).toLocaleTimeString([], {
-                    hour: "numeric",
-                    minute: "2-digit",
-                    hour12: true,
-                  })}
+                <div className="text-xs opacity-90 truncate">
+                  {formatTime(evt.start)}
                 </div>
               )}
             </div>
           );
         })}
 
-        {/* Time slot hover areas */}
-        {Array.from({ length: 13 * (60 / minuteStep) }).map((_, i) => {
-          const minutes = i * minuteStep;
-          return (
-            <div
-              key={i}
-              className="absolute left-0 right-0 hover:bg-gray-50 z-0"
-              style={{
-                top: minutesToY(minutes),
-                height: minutesToY(minuteStep),
-              }}
-              onMouseEnter={() => handleTimeSlotHover(minutes)}
-              onMouseLeave={() => handleTimeSlotHover(null)}
-            />
-          );
-        })}
+        {/* Current time indicator (if today) */}
+        {date.toDateString() === new Date().toDateString() &&
+          (() => {
+            const now = new Date();
+            const currentMinutes = getMinutesSinceMidnight(now);
+            if (
+              currentMinutes >= START_HOUR * 60 &&
+              currentMinutes < END_HOUR * 60
+            ) {
+              return (
+                <div
+                  className="absolute w-full border-t-2 border-red-500 z-20"
+                  style={{
+                    top: minutesToY(currentMinutes),
+                  }}
+                >
+                  <div className="w-2 h-2 bg-red-500 rounded-full -mt-1 -ml-1" />
+                </div>
+              );
+            }
+            return null;
+          })()}
       </div>
     </div>
   );

@@ -27,6 +27,27 @@ export function toTimeLabel(mins: number) {
   return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`;
 }
 
+/**
+ * Format time consistently for server and client to avoid hydration errors
+ * Returns format: "7:00 AM" or "7:30 PM"
+ */
+export function formatTime(date: Date): string {
+  const hours = date.getHours();
+  const minutes = date.getMinutes();
+  const hour12 = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
+  const ampm = hours < 12 ? "AM" : "PM";
+  const minutesStr = String(minutes).padStart(2, "0");
+  return `${hour12}:${minutesStr} ${ampm}`;
+}
+
+/**
+ * Format time range consistently for server and client
+ * Returns format: "7:00 AM - 7:30 AM"
+ */
+export function formatTimeRange(start: Date, end: Date): string {
+  return `${formatTime(start)} - ${formatTime(end)}`;
+}
+
 export function addMinutes(date: Date, mins: number) {
   return new Date(date.getTime() + mins * 60000);
 }

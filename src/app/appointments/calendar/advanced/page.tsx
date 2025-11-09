@@ -24,27 +24,29 @@ import {
   createAppointment,
   updateAppointment,
   deleteAppointment,
+  Appointment,
 } from "../../../api/appointments";
 import {
   startOfISOWeek,
   getWeekDates,
   startOfMonth,
   buildMonthMatrix,
-} from "../../../calendar/date-helpers";
+  formatDateDisplay,
+} from "../../../utils/date-helpers";
 import {
   cloneDate,
   createDateFromAPI,
   getLocalDateKey,
   normalizeToLocalMidnight,
   parseLocalISO,
-} from "../../../calendar/timezone-utils";
-import { setTime } from "@/app/calendar/utils";
+} from "../../../utils/timezone-utils";
+import { setTime } from "@/app/utils/calendar-utils";
 import {
   CalendarEvent,
   debugDateInfo,
   normalizeApiEvents,
   toApiString,
-} from "@/app/calendar/date-core";
+} from "@/app/utils/date-core";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import Button from "@/app/ui/primitives/Button";
 
@@ -112,9 +114,53 @@ export default function AdvancedCalendarPage() {
 
   // Mutations
   const createMut = useMutation({
-    mutationFn: (p: AppointmentPayload) => createAppointment(p),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["calendar-day"] });
+    mutationFn: (p: AppointmentPayload) => {
+      // Convert CalendarAppointmentPayload to API format
+      // API expects doctorUserId (not doctorId) and it must be a UUID
+      if (!p.doctorUserId) {
+        throw new Error("Doctor user ID is required");
+      }
+      
+      const apiPayload: any = {
+        title: p.title,
+        startTime: p.startTime,
+        endTime: p.endTime,
+        patientId: p.patientId,
+        doctorUserId: p.doctorUserId, // API expects doctorUserId (must be UUID)
+        fee: p.fee,
+        type: p.type,
+        description: p.description,
+      };
+      console.log("🚀 [Calendar] Creating appointment with payload:", apiPayload);
+      return createAppointment(apiPayload);
+    },
+    onSuccess: async (data, variables) => {
+      console.log("✅ [Calendar] Appointment created successfully:", data);
+      
+      // Invalidate the specific date query for the appointment's date
+      // Use the response data if available, otherwise fall back to the payload
+      const startTime = data?.startTime || variables.startTime;
+      if (startTime) {
+        const appointmentDate = new Date(startTime);
+        const dateKey = getLocalDateKey(appointmentDate);
+        console.log("🗓️ [Calendar] Invalidating calendar for LOCAL date key:", dateKey, {
+          apiTime: startTime,
+          localDate: appointmentDate.toLocaleDateString(),
+          localTime: appointmentDate.toLocaleTimeString(),
+        });
+        
+        // Invalidate and refetch the specific date
+        await qc.invalidateQueries({ queryKey: ["calendar-day", dateKey] });
+        await qc.refetchQueries({ queryKey: ["calendar-day", dateKey] });
+      }
+      
+      // Also invalidate all calendar-day queries to ensure week/month views update
+      await qc.invalidateQueries({ queryKey: ["calendar-day"] });
+      
+      // Also invalidate appointments list to keep it in sync
+      await qc.invalidateQueries({ queryKey: ["appointments"] });
+      
+      console.log("✨ [Calendar] All queries invalidated");
       setSlotStart(null);
       setSlotEnd(null);
     },
@@ -212,12 +258,7 @@ export default function AdvancedCalendarPage() {
 
               {/* Current Date Display */}
               <div className="text-lg font-medium text-gray-700 bg-gray-50 px-4 py-2 rounded-lg border border-gray-200">
-                {cursorDate.toLocaleDateString(undefined, {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                {formatDateDisplay(cursorDate)}
               </div>
             </div>
 
@@ -269,7 +310,6 @@ export default function AdvancedCalendarPage() {
             <DayCalendar
               date={cursorDate}
               events={eventsDay}
-              minuteStep={15}
               onCreate={(start, end) => {
                 const day = new Date(cursorDate.getTime());
                 setSlotStart(start);

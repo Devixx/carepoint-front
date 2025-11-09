@@ -1,7 +1,10 @@
 // src/app/calendar/date-core.ts
 /**
- * Core date handling utilities - Single Source of Truth
- * All calendar components MUST use these utilities
+ * ⚠️ DEPRECATED: This file is deprecated for date conversion operations.
+ * Use ../utils/date-utils.ts for all date conversions (toApiDate, fromApiDate, etc.)
+ * 
+ * This file is kept for calendar-specific utilities (normalizeApiEvent, etc.)
+ * but date conversion functions should use date-utils.ts
  *
  * @author Senior Developer
  * @version 2.0.0 - Timezone Safe Architecture
@@ -33,12 +36,25 @@ export interface CalendarEvent {
  * This is the ONLY way to create events from API data
  */
 export function normalizeApiEvent(apiEvent: ApiTimeSlot): CalendarEvent {
+  const patient = apiEvent.patient
+    ? {
+        ...apiEvent.patient,
+        label:
+          (apiEvent.patient.label ??
+            [apiEvent.patient.firstName, apiEvent.patient.lastName]
+              .filter(Boolean)
+              .join(" ")) ||
+          apiEvent.patient.email ||
+          apiEvent.patient.id,
+      }
+    : undefined;
+
   return {
     id: apiEvent.id,
     title: apiEvent.title,
     start: new Date(apiEvent.startTime),
     end: new Date(apiEvent.endTime),
-    patient: apiEvent.patient,
+    patient,
     fee: apiEvent.fee,
   };
 }

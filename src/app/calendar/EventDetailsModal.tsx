@@ -16,6 +16,7 @@ import {
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import { Patient } from "../api/patients";
+import { formatTime } from "../utils/calendar-utils";
 
 export type CalendarEventVM = {
   id: string;
@@ -56,11 +57,7 @@ export default function EventDetailsModal({
         month: "long",
         day: "numeric",
       }),
-      time: date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      time: formatTime(date),
     };
   };
 

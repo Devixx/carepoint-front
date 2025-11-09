@@ -3,7 +3,7 @@
 import Input from "../ui/primitives/Input";
 import Button from "../ui/primitives/Button";
 import { useState } from "react";
-import { createISOFromLocal } from "../calendar/timezone-utils";
+import { toApiDate, dateToLocalInput } from "../utils/date-utils";
 import { useAuth } from "../contexts/AuthContext";
 
 export type AppointmentFormValues = {
@@ -25,8 +25,8 @@ export default function AppointmentForm({
   const endDefault = new Date(startDefault.getTime() + 30 * 60 * 1000);
 
   const [title, setTitle] = useState("Consultation");
-  const [start, setStart] = useState(startDefault.toISOString().slice(0, 16));
-  const [end, setEnd] = useState(endDefault.toISOString().slice(0, 16));
+  const [start, setStart] = useState(dateToLocalInput(startDefault));
+  const [end, setEnd] = useState(dateToLocalInput(endDefault));
   const [patientId, setPatientId] = useState("REPLACE_WITH_REAL_PATIENT_ID");
   const [fee, setFee] = useState<number | undefined>(80);
   const { user } = useAuth();
@@ -40,8 +40,8 @@ export default function AppointmentForm({
         e.preventDefault();
         onSubmit({
           title,
-          startTime: createISOFromLocal(start),
-          endTime: createISOFromLocal(end),
+          startTime: toApiDate(start),
+          endTime: toApiDate(end),
           patientId,
           fee,
           doctorId: user!.id,

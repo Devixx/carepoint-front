@@ -1,5 +1,7 @@
 // src/app/calendar/timezone-utils.ts
-// Utility functions for handling timezone-safe date operations
+// ⚠️ DEPRECATED: This file is deprecated. Use ../utils/date-utils.ts instead.
+// This file is kept for backward compatibility but will be removed in a future version.
+// All new code should use the centralized date-utils.ts
 
 /**
  * Create a Date object from API response (ISO string)

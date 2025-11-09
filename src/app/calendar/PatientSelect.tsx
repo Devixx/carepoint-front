@@ -1,7 +1,7 @@
 // Fixed: src/app/calendar/PatientSelect.tsx - Now Properly Sets Patient ID
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useInfiniteQuery } from "@tanstack/react-query";
 import { listPatients, Patient } from "../api/patients";
 import { ChevronDown, Search, User, Check } from "lucide-react";
@@ -48,22 +48,33 @@ export default function PatientSelect({
     return () => clearTimeout(id);
   }, [search, refetch]);
 
+  const withLabel = useCallback(
+    (patient: Patient): Patient => ({
+      ...patient,
+      label:
+        (patient.label ??
+          [patient.firstName, patient.lastName].filter(Boolean).join(" ")) ||
+        patient.email ||
+        patient.id,
+    }),
+    []
+  );
+
   const options: Patient[] = useMemo(() => {
     const items = data?.pages?.flatMap((p) => p.items) ?? [];
-    return items.map((p) => ({
-      ...p,
-      label:
-        [p.firstName, p.lastName].filter(Boolean).join(" ") || p.email || p.id,
-    }));
-  }, [data]);
+    return items.map(withLabel);
+  }, [data, withLabel]);
+
+  const normalizedValue = value ? withLabel(value) : undefined;
 
   // Find the selected option
-  const selectedOption = options.find((o) => o.id === value?.id);
+  const selectedOption =
+    options.find((o) => o.id === normalizedValue?.id) ?? normalizedValue;
 
   // ✅ Handle patient selection
   const handleSelect = (patient: Patient) => {
     console.log("Selected patient ID:", patient?.id); // Debug log
-    onChange(patient);
+    onChange(withLabel(patient));
     setIsOpen(false);
     setSearch(""); // Reset search after selection
   };
@@ -117,7 +128,7 @@ export default function PatientSelect({
           />
 
           {/* Dropdown content */}
-          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-hidden">
+          <div className="absolute z-20 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-72 overflow-hidden">
             {/* Search input */}
             <div className="p-3 border-b border-gray-200">
               <div className="relative">
@@ -140,7 +151,7 @@ export default function PatientSelect({
             </div>
 
             {/* Patient options */}
-            <div className="max-h-48 overflow-y-auto">
+            <div className="max-h-64 min-h-[12rem] overflow-y-auto">
               {isLoading ? (
                 <div className="p-4 text-sm text-gray-500 text-center">
                   Loading patients...

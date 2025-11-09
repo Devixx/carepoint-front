@@ -17,7 +17,7 @@ import {
   Activity,
 } from "lucide-react";
 import StatusBadge from "./StatusBadge";
-import { fromDateTimeLocalString } from "../calendar/date-core";
+import { formatTime } from "../utils/calendar-utils";
 
 interface AppointmentCardProps {
   appointment: Appointment;
@@ -43,18 +43,15 @@ export default function AppointmentCard({
         month: "short",
         day: "numeric",
       }),
-      time: date.toLocaleTimeString("en-US", {
-        hour: "2-digit",
-        minute: "2-digit",
-        hour12: true,
-      }),
+      time: formatTime(date),
     };
   };
 
   // Calculate duration
   const getDuration = () => {
-    const start = fromDateTimeLocalString(appointment.startTime);
-    const end = fromDateTimeLocalString(appointment.endTime);
+    // appointment.startTime and endTime are ISO strings from API
+    const start = new Date(appointment.startTime);
+    const end = new Date(appointment.endTime);
     const minutes = Math.round((end.getTime() - start.getTime()) / (1000 * 60));
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;

@@ -3,6 +3,7 @@ import React, { useState } from "react";
 import { useAuth } from "../../contexts/AuthContext";
 import { useRouter } from "next/navigation";
 import { Eye, EyeOff, Mail, Lock, Stethoscope } from "lucide-react";
+import Button from "@/app/ui/primitives/Button";
 
 interface LoginFormProps {
   onSuccess?: () => void;
@@ -261,6 +262,25 @@ export default function LoginForm({ onSuccess }: LoginFormProps) {
                   "Sign in"
                 )}
               </button>
+            </div>
+
+            {/* Demo Login */}
+            <div className="mt-8 pt-6 border-t border-slate-200">
+              <p className="text-xs text-slate-500 text-center mb-3">
+                Demo Account (for testing)
+              </p>
+              <Button
+                variant="secondary"
+                className="w-full"
+                onClick={() =>
+                  setFormData({
+                    email: "dr.amanda@carepoint.lu",
+                    password: "password123",
+                  })
+                }
+              >
+                Fill Demo Credentials
+              </Button>
             </div>
 
             {/* Support Link */}

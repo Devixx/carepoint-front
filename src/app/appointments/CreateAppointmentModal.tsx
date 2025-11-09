@@ -1,13 +1,14 @@
 // Updated: src/app/appointments/CreateAppointmentModal.tsx - With PatientSelect Dropdown
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import PatientSelect from "../calendar/PatientSelect";
 import { Patient } from "../api/patients";
 import { useAuth } from "../contexts/AuthContext";
+import { toApiDate, dateToLocalInput, debugDateConversion } from "../utils/date-utils";
 
 export interface CreateAppointmentPayload {
   title: string;
@@ -27,6 +28,11 @@ interface CreateAppointmentModalProps {
   onSubmit: (payload: CreateAppointmentPayload) => void;
   isLoading?: boolean;
   error?: string;
+  selectedTimeSlot?: {
+    // ✅ ADD THIS PROP
+    start: Date;
+    end: Date;
+  };
 }
 
 export default function CreateAppointmentModal({
@@ -35,23 +41,36 @@ export default function CreateAppointmentModal({
   onSubmit,
   isLoading = false,
   error,
+  selectedTimeSlot,
 }: CreateAppointmentModalProps) {
   // Default times (1 hour from now, 30 minutes duration)
-  const getDefaultTimes = () => {
+  const getDefaultTimes = (timeSlot?: { start: Date; end: Date }) => {
+    if (timeSlot) {
+      // ✅ Use the selected time slot from calendar
+      console.log("🕐 Using selected time slot:", {
+        start: timeSlot.start.toLocaleString(),
+        end: timeSlot.end.toLocaleString(),
+      });
+
+      return {
+        start: dateToLocalInput(timeSlot.start),
+        end: dateToLocalInput(timeSlot.end),
+      };
+    }
     const now = new Date();
     const start = new Date(now.getTime() + 60 * 60 * 1000); // 1 hour from now
     const end = new Date(start.getTime() + 30 * 60 * 1000); // 30 minutes later
 
     return {
-      start: start.toISOString().slice(0, 16),
-      end: end.toISOString().slice(0, 16),
+      start: dateToLocalInput(start),
+      end: dateToLocalInput(end),
     };
   };
 
   const { user } = useAuth();
 
   const [formData, setFormData] = useState(() => {
-    const times = getDefaultTimes();
+    const times = getDefaultTimes(selectedTimeSlot);
     return {
       title: "Consultation",
       description: "",
@@ -67,9 +86,28 @@ export default function CreateAppointmentModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  useEffect(() => {
+    if (!open) return;
+
+    const times = getDefaultTimes(selectedTimeSlot);
+
+    setFormData({
+      title: "Consultation",
+      description: "",
+      startTime: times.start,
+      endTime: times.end,
+      type: "consultation",
+      status: "pending",
+      patient: {} as Patient,
+      fee: "80",
+      docterId: user?.id,
+    });
+    setErrors({});
+  }, [open, selectedTimeSlot, user?.id]);
+
   // Reset form when modal closes
   const handleClose = () => {
-    const times = getDefaultTimes();
+    const times = getDefaultTimes(selectedTimeSlot);
     setFormData({
       title: "Consultation",
       description: "",
@@ -89,6 +127,10 @@ export default function CreateAppointmentModal({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
+    console.log("Validating form data:", formData);
+    console.log("Patient object:", formData.patient);
+    console.log("Patient ID:", formData.patient?.id);
+
     if (!formData.title.trim()) {
       newErrors.title = "Title is required";
     }
@@ -98,7 +140,7 @@ export default function CreateAppointmentModal({
     if (!formData.endTime) {
       newErrors.endTime = "End time is required";
     }
-    if (!formData.patient.id.trim()) {
+    if (!formData.patient || !formData.patient.id || !formData.patient.id.trim()) {
       newErrors.patientId = "Patient selection is required";
     }
 
@@ -131,23 +173,70 @@ export default function CreateAppointmentModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validateForm()) return;
-    console.log("Submitting appointment with doctorId:", user?.id);
+    console.log("Form submission - formData:", formData);
+    console.log("Form submission - patient:", formData.patient);
+    console.log("Form submission - patient.id:", formData.patient?.id);
+    
+    if (!validateForm()) {
+      console.log("Validation failed");
+      return;
+    }
+    
+    const patientId = formData.patient?.id?.trim();
+    if (!patientId) {
+      console.error("Patient ID is missing!");
+      setErrors((prev) => ({ ...prev, patientId: "Patient selection is required" }));
+      return;
+    }
+    
+    // Convert datetime-local strings to UTC ISO strings using centralized utility
+    const startTimeISO = toApiDate(formData.startTime);
+    const endTimeISO = toApiDate(formData.endTime);
+    
+    // Enhanced debug logging for timezone conversion
+    const startDate = new Date(formData.startTime);
+    const endDate = new Date(formData.endTime);
+    
+    console.log("🕐 TIMEZONE CONVERSION DETAILS:");
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("📍 Your timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
+    console.log("⏰ Timezone offset:", startDate.getTimezoneOffset(), "minutes");
+    console.log("");
+    console.log("🟢 START TIME:");
+    console.log("  • You selected (local):", formData.startTime);
+    console.log("  • Display in your timezone:", startDate.toLocaleString());
+    console.log("  • Sent to API (UTC):", startTimeISO);
+    console.log("  • UTC time:", startDate.toUTCString());
+    console.log("");
+    console.log("🔴 END TIME:");
+    console.log("  • You selected (local):", formData.endTime);
+    console.log("  • Display in your timezone:", endDate.toLocaleString());
+    console.log("  • Sent to API (UTC):", endTimeISO);
+    console.log("  • UTC time:", endDate.toUTCString());
+    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+    console.log("✅ This is CORRECT! API stores in UTC, UI displays in your local time.");
+    console.log("");
+    
     onSubmit({
       title: formData.title.trim(),
       description: formData.description.trim() || undefined,
-      startTime: new Date(formData.startTime).toISOString(),
-      endTime: new Date(formData.endTime).toISOString(),
+      startTime: startTimeISO,
+      endTime: endTimeISO,
       type: formData.type,
       status: formData.status,
-      patientId: formData.patient.id.trim(),
+      patientId: patientId,
       fee: formData.fee ? Number(formData.fee) : undefined,
       doctorId: user!.id,
     });
   };
 
   const handleInputChange = (field: string, value: string | Patient) => {
-    setFormData((prev) => ({ ...prev, [field]: value }));
+    console.log("handleInputChange:", { field, value });
+    setFormData((prev) => {
+      const updated = { ...prev, [field]: value };
+      console.log("Updated formData:", updated);
+      return updated;
+    });
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
@@ -245,6 +334,36 @@ export default function CreateAppointmentModal({
           </div>
         </div>
 
+        {/* Patient Section */}
+        <div>
+          <div className="flex items-center mb-4">
+            <User className="w-5 h-5 text-primary-600 mr-2" />
+            <h4 className="text-lg font-medium text-gray-900">Patient</h4>
+          </div>
+          <div>
+            <label
+              htmlFor="patient"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              Patient *
+            </label>
+            <div className={`${errors.patientId ? "border-red-300" : ""}`}>
+              <PatientSelect
+                value={formData.patient && formData.patient.id ? formData.patient : undefined}
+                onChange={(value) => {
+                  console.log("PatientSelect onChange called with:", value);
+                  handleInputChange("patient", value);
+                }}
+                placeholder="Select a patient..."
+                error={errors.patientId}
+              />
+            </div>
+            {errors.patientId && (
+              <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
+            )}
+          </div>
+        </div>
+
         {/* Schedule Section */}
         <div>
           <div className="flex items-center mb-4">
@@ -299,60 +418,37 @@ export default function CreateAppointmentModal({
           </div>
         </div>
 
-        {/* Patient & Payment Section */}
+        {/* Payment Section */}
         <div>
           <div className="flex items-center mb-4">
-            <User className="w-5 h-5 text-primary-600 mr-2" />
-            <h4 className="text-lg font-medium text-gray-900">
-              Patient & Payment
-            </h4>
+            <DollarSign className="w-5 h-5 text-primary-600 mr-2" />
+            <h4 className="text-lg font-medium text-gray-900">Payment</h4>
           </div>
 
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label
-                htmlFor="patient"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                Patient *
-              </label>
-              <div className={`${errors.patientId ? "border-red-300" : ""}`}>
-                <PatientSelect
-                  value={formData.patient}
-                  onChange={(value) => handleInputChange("patient", value)}
-                  placeholder="Select a patient..."
-                />
-              </div>
-              {errors.patientId && (
-                <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
-              )}
-            </div>
-
-            <div>
-              <label
-                htmlFor="fee"
-                className="block text-sm font-medium text-gray-700 mb-2"
-              >
-                <DollarSign className="w-4 h-4 inline mr-1" />
-                Consultation Fee (€)
-              </label>
-              <input
-                type="number"
-                id="fee"
-                value={formData.fee}
-                onChange={(e) => handleInputChange("fee", e.target.value)}
-                className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
-                  errors.fee ? "border-red-300" : "border-gray-300"
-                }`}
-                placeholder="80"
-                min="0"
-                step="0.01"
-                disabled={isLoading}
-              />
-              {errors.fee && (
-                <p className="mt-2 text-sm text-red-600">{errors.fee}</p>
-              )}
-            </div>
+          <div>
+            <label
+              htmlFor="fee"
+              className="block text-sm font-medium text-gray-700 mb-2"
+            >
+              <DollarSign className="w-4 h-4 inline mr-1" />
+              Consultation Fee (€)
+            </label>
+            <input
+              type="number"
+              id="fee"
+              value={formData.fee}
+              onChange={(e) => handleInputChange("fee", e.target.value)}
+              className={`block w-full px-3 py-2 border rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 sm:text-sm ${
+                errors.fee ? "border-red-300" : "border-gray-300"
+              }`}
+              placeholder="80"
+              min="0"
+              step="0.01"
+              disabled={isLoading}
+            />
+            {errors.fee && (
+              <p className="mt-2 text-sm text-red-600">{errors.fee}</p>
+            )}
           </div>
         </div>
 
