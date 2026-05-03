@@ -8,6 +8,7 @@ on:
 env:
   REGISTRY: ghcr.io
   IMAGE_NAME: devixx/carepoint-front
+  SERVICE_NAME: doctor-portal
 
 jobs:
   build-and-push:
@@ -39,150 +40,32 @@ jobs:
           cache-from: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache
           cache-to: type=registry,ref=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:buildcache,mode=max
 
-  deploy:
+  restart-service:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Execute Remote Deployment
+      - name: Pull and restart only the doctor-portal service
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.GCP_IP }}
           username: ubuntu
           key: ${{ secrets.GCP_SSH_KEY }}
           timeout: 60s
-          command_timeout: 20m
+          command_timeout: 10m
           script: |
-            PROJECT_DIR="/home/ubuntu/carepoint"
-            mkdir -p $PROJECT_DIR
-            cd $PROJECT_DIR
+            set -euo pipefail
+            cd /home/ubuntu/carepoint
 
-            # Write docker-compose.yaml
-            cat > docker-compose.yaml << 'COMPOSE_EOF'
-            services:
-              db:
-                image: postgres:15-alpine
-                container_name: carepoint-db
-                restart: always
-                environment:
-                  POSTGRES_USER: ${POSTGRES_USER:-postgres}
-                  POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-password123}
-                  POSTGRES_DB: ${POSTGRES_DB:-carepoint_db}
-                volumes:
-                  - db_data:/var/lib/postgresql/data
-                healthcheck:
-                  test: ["CMD-SHELL", "pg_isready -U postgres"]
-                  interval: 10s
-                  timeout: 5s
-                  retries: 5
-                logging:
-                  driver: "json-file"
-                  options: { max-size: "10m", max-file: "3" }
+            if [ ! -f docker-compose.yaml ]; then
+              echo "docker-compose.yaml not found on the VM."
+              echo "Run the backend deploy workflow first to bootstrap the stack."
+              exit 1
+            fi
 
-              backend:
-                image: ghcr.io/devixx/carepoint-back:latest
-                container_name: carepoint-api
-                restart: always
-                environment:
-                  DATABASE_HOST: db
-                  DATABASE_PORT: 5432
-                  DATABASE_USERNAME: ${POSTGRES_USER:-postgres}
-                  DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-password123}
-                  DATABASE_NAME: ${POSTGRES_DB:-carepoint_db}
-                  PORT: 3001
-                  NODE_ENV: production
-                  JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
-                depends_on:
-                  db:
-                    condition: service_healthy
-                logging:
-                  driver: "json-file"
-                  options: { max-size: "10m", max-file: "3" }
-
-              doctor-portal:
-                image: ghcr.io/devixx/carepoint-front:latest
-                container_name: carepoint-doctor
-                restart: always
-                environment:
-                  NEXT_PUBLIC_API_URL: https://${DOMAIN_NAME}/api
-                  NODE_ENV: production
-                logging:
-                  driver: "json-file"
-                  options: { max-size: "10m", max-file: "3" }
-
-              patient-portal:
-                image: ghcr.io/devixx/carepoint-patient:latest
-                container_name: carepoint-patient
-                restart: always
-                environment:
-                  NEXT_PUBLIC_API_URL: https://${DOMAIN_NAME}/api
-                  NODE_ENV: production
-                logging:
-                  driver: "json-file"
-                  options: { max-size: "10m", max-file: "3" }
-
-              caddy:
-                image: caddy:alpine
-                container_name: carepoint-caddy
-                restart: always
-                ports:
-                  - "80:80"
-                  - "443:443"
-                environment:
-                  DOMAIN_NAME: ${DOMAIN_NAME}
-                  LETSENCRYPT_EMAIL: ${LETSENCRYPT_EMAIL}
-                volumes:
-                  - ./Caddyfile:/etc/caddy/Caddyfile
-                  - caddy_data:/data
-                  - caddy_config:/config
-                depends_on:
-                  - doctor-portal
-                  - patient-portal
-                  - backend
-                logging:
-                  driver: "json-file"
-                  options: { max-size: "10m", max-file: "3" }
-
-            volumes:
-              db_data:
-              caddy_data:
-              caddy_config:
-            COMPOSE_EOF
-
-            # Write Caddyfile
-            cat > Caddyfile << 'CADDY_EOF'
-            {
-                email {$LETSENCRYPT_EMAIL}
-            }
-
-            {$DOMAIN_NAME} {
-                handle /api/* {
-                    uri strip_prefix /api
-                    reverse_proxy backend:3001
-                }
-                handle /doctor/* {
-                    reverse_proxy doctor-portal:3000
-                }
-                handle /patient/* {
-                    reverse_proxy patient-portal:3002
-                }
-                handle / {
-                    redir /patient
-                }
-                encode gzip
-            }
-            CADDY_EOF
-
-            # Create/Update .env file
-            echo "DOMAIN_NAME=${{ secrets.DOMAIN_NAME }}" > .env
-            echo "LETSENCRYPT_EMAIL=${{ secrets.LETSENCRYPT_EMAIL }}" >> .env
-            echo "POSTGRES_USER=postgres" >> .env
-            echo "POSTGRES_PASSWORD=password123" >> .env
-            echo "POSTGRES_DB=carepoint_db" >> .env
-            echo "JWT_SECRET=carepoint-secret-123" >> .env
-
-            # Login to GHCR
+            # Login to GHCR so we can pull the new image
             echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull and restart
-            sudo docker compose pull
-            sudo docker compose up -d --force-recreate --remove-orphans
+            # Pull only the doctor-portal image and recreate only that service.
+            # --no-deps means we don't touch db, backend, patient-portal, or caddy.
+            sudo docker compose pull doctor-portal
+            sudo docker compose up -d --no-deps doctor-portal
