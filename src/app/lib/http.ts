@@ -34,7 +34,7 @@ http.interceptors.response.use(
         typeof window !== "undefined" &&
         !window.location.pathname.includes("/login")
       ) {
-        window.location.href = "/login";
+        window.location.href = "/doctor/login";
       }
     }
     return Promise.reject(error);
