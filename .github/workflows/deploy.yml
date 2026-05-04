@@ -46,7 +46,19 @@ jobs:
     needs: build-and-push
     runs-on: ubuntu-latest
     steps:
-      - name: Pull and restart only the doctor-portal service
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Copy Caddyfile to GCP
+        uses: appleboy/scp-action@v0.1.7
+        with:
+          host: ${{ secrets.GCP_IP }}
+          username: ubuntu
+          key: ${{ secrets.GCP_SSH_KEY }}
+          source: "Caddyfile"
+          target: "/home/ubuntu/carepoint/"
+
+      - name: Pull, restart service, and reload Caddy
         uses: appleboy/ssh-action@v1.0.3
         with:
           host: ${{ secrets.GCP_IP }}
@@ -60,14 +72,12 @@ jobs:
 
             if [ ! -f docker-compose.yaml ]; then
               echo "docker-compose.yaml not found on the VM."
-              echo "Run the backend deploy workflow first to bootstrap the stack."
               exit 1
             fi
 
-            # Login to GHCR so we can pull the new image
             echo "${{ secrets.GITHUB_TOKEN }}" | sudo docker login ghcr.io -u ${{ github.actor }} --password-stdin
 
-            # Pull only the doctor-portal image and recreate only that service.
-            # --no-deps means we don't touch db, backend, patient-portal, or caddy.
             sudo docker compose pull doctor-portal
             sudo docker compose up -d --no-deps doctor-portal
+
+            sudo docker compose exec -T caddy caddy reload --config /etc/caddy/Caddyfile
