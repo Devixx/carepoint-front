@@ -1,5 +1,6 @@
 /* src/app/globals.css */
 @import "tailwindcss";
+@source "../../src/**/*.{tsx,ts,jsx,js,mdx}";
 
 html,
 body,
