@@ -29,6 +29,10 @@ export interface Paginated<T> {
 export async function listAppointments(params: {
   page?: number;
   limit?: number;
+  start?: string;
+  end?: string;
+  sort?: string;
+  order?: "ASC" | "DESC";
 }) {
   const res = await http.get<Paginated<Appointment>>("/appointments", {
     params,

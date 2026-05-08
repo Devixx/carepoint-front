@@ -157,6 +157,26 @@ export default function CreateAppointmentModal({
       if (start < now) {
         newErrors.startTime = "Appointment cannot be scheduled in the past";
       }
+
+      // No weekends
+      const dayOfWeek = start.getDay(); // 0 = Sunday, 6 = Saturday
+      if (dayOfWeek === 0 || dayOfWeek === 6) {
+        newErrors.startTime = "Appointments cannot be scheduled on weekends";
+      }
+
+      // Business hours: 7:00–19:00
+      const startHour = start.getHours();
+      const startMinutes = start.getMinutes();
+      const endHour = end.getHours();
+      const endMinutes = end.getMinutes();
+      const startTotal = startHour * 60 + startMinutes;
+      const endTotal = endHour * 60 + endMinutes;
+      if (startTotal < 7 * 60 || startTotal >= 19 * 60) {
+        newErrors.startTime = "Appointments must start between 7:00 AM and 7:00 PM";
+      }
+      if (endTotal > 19 * 60) {
+        newErrors.endTime = "Appointments must end by 7:00 PM";
+      }
     }
 
     // Validate fee

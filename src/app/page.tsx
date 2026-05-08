@@ -85,10 +85,17 @@ export default function DashboardPage() {
     staleTime: 1000 * 60 * 1, // 1 minute (more frequent for today's schedule)
   });
 
-  // Fetch upcoming appointments (next few days)
+  // Fetch upcoming appointments (today and future, sorted ascending)
   const { data: upcomingData, isLoading: upcomingLoading } = useQuery({
-    queryKey: ["dashboard-upcoming"],
-    queryFn: () => listAppointments({ page: 1, limit: 8 }),
+    queryKey: ["dashboard-upcoming", getTodayDateKey()],
+    queryFn: () =>
+      listAppointments({
+        page: 1,
+        limit: 8,
+        start: new Date().toISOString(),
+        sort: "startTime",
+        order: "ASC",
+      }),
     refetchOnWindowFocus: false,
     staleTime: 1000 * 60 * 2, // 2 minutes
   });

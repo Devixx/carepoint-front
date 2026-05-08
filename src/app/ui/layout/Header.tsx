@@ -62,8 +62,8 @@ export default function Header() {
             <Plus className="h-4 w-4" /> New Patient
           </Link>
           <Link
-            href="/appointments"
-            className="inline-flex items-center gap-2 rounded-lg bg-blue-700 text-white px-3 py-2 text-sm hover:bg-blue-700"
+            href="/appointments?new=1"
+            className="inline-flex items-center gap-2 rounded-lg bg-blue-700 text-white px-3 py-2 text-sm hover:bg-blue-800"
           >
             <Plus className="h-4 w-4" /> New Appointment
           </Link>

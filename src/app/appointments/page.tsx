@@ -5,6 +5,7 @@ import Sidebar from "../ui/layout/Sidebar";
 import Header from "../ui/layout/Header";
 import Card from "../ui/primitives/Card";
 import { useEffect, useState } from "react";
+import { useSearchParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   createAppointment,
@@ -45,6 +46,16 @@ export default function AppointmentsPage() {
   );
 
   const qc = useQueryClient();
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  // Auto-open create modal when ?new=1 is in the URL (from header button)
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      setOpenCreate(true);
+      router.replace("/appointments");
+    }
+  }, [searchParams, router]);
 
   // Debounced search
   useEffect(() => {
