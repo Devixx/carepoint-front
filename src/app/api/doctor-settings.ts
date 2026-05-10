@@ -18,6 +18,11 @@ export interface DoctorProfile {
   city?: string;
   zipCode?: string;
   country?: string;
+  // Practice preferences
+  acceptsCNS?: boolean;
+  acceptsVideo?: boolean;
+  languages?: string[];
+  workingHoursDisplay?: string;
   // Social Media
   website?: string;
   linkedin?: string;
