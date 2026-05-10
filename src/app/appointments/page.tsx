@@ -4,7 +4,7 @@
 import Sidebar from "../ui/layout/Sidebar";
 import Header from "../ui/layout/Header";
 import Card from "../ui/primitives/Card";
-import { useEffect, useState } from "react";
+import { useEffect, useState, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
@@ -27,6 +27,18 @@ import CreateAppointmentModal, {
 } from "./CreateAppointmentModal";
 import ConfirmDialog from "../ui/primitives/ConfirmDialog";
 
+function NewParamWatcher({ onNew }: { onNew: () => void }) {
+  const searchParams = useSearchParams();
+  const router = useRouter();
+  useEffect(() => {
+    if (searchParams.get("new") === "1") {
+      onNew();
+      router.replace("/appointments");
+    }
+  }, [searchParams, router, onNew]);
+  return null;
+}
+
 export default function AppointmentsPage() {
   const [page, setPage] = useState(1);
   const limit = 12;
@@ -46,16 +58,6 @@ export default function AppointmentsPage() {
   );
 
   const qc = useQueryClient();
-  const searchParams = useSearchParams();
-  const router = useRouter();
-
-  // Auto-open create modal when ?new=1 is in the URL (from header button)
-  useEffect(() => {
-    if (searchParams.get("new") === "1") {
-      setOpenCreate(true);
-      router.replace("/appointments");
-    }
-  }, [searchParams, router]);
 
   // Debounced search
   useEffect(() => {
@@ -175,6 +177,10 @@ export default function AppointmentsPage() {
 
   return (
     <div className="flex min-h-screen bg-gray-50">
+      <Suspense fallback={null}>
+        <NewParamWatcher onNew={() => setOpenCreate(true)} />
+      </Suspense>
+
       {/* Sidebar */}
       <Sidebar />
 
