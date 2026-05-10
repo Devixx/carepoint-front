@@ -71,9 +71,7 @@ export default function PatientSelect({
   const selectedOption =
     options.find((o) => o.id === normalizedValue?.id) ?? normalizedValue;
 
-  // ✅ Handle patient selection
   const handleSelect = (patient: Patient) => {
-    console.log("Selected patient ID:", patient?.id); // Debug log
     onChange(withLabel(patient));
     setIsOpen(false);
     setSearch(""); // Reset search after selection
@@ -208,12 +206,6 @@ export default function PatientSelect({
         </>
       )}
 
-      {/* ✅ Selected patient display (for debugging) */}
-      {value && selectedOption && (
-        <div className="mt-1 text-xs text-gray-600">
-          Selected: {selectedOption.label} (ID: {selectedOption.id})
-        </div>
-      )}
     </div>
   );
 }

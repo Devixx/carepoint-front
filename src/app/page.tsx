@@ -214,6 +214,7 @@ export default function DashboardPage() {
                 patientsLoading ? undefined : `${totalPatients} registered`
               }
               icon={<Users className="w-5 h-5 text-blue-600" />}
+              href="/patients"
             />
             <MetricCard
               label="Total Appointments"
@@ -230,6 +231,7 @@ export default function DashboardPage() {
                   : `${totalAppointments} scheduled`
               }
               icon={<CalendarDays className="w-5 h-5 text-green-600" />}
+              href="/appointments"
             />
             <MetricCard
               label="Today's Schedule"
@@ -238,6 +240,7 @@ export default function DashboardPage() {
                 todayLoading ? undefined : `${todayCount} appointments today`
               }
               icon={<Activity className="w-5 h-5 text-purple-600" />}
+              href="/appointments/calendar/advanced"
             />
             <MetricCard
               label="This Week"
@@ -248,6 +251,7 @@ export default function DashboardPage() {
                   : `${thisWeekCount} appointments this week`
               }
               icon={<Clock className="w-5 h-5 text-orange-600" />}
+              href="/appointments"
             />
           </div>
 

@@ -1,14 +1,13 @@
-// Updated: src/app/appointments/CreateAppointmentModal.tsx - With PatientSelect Dropdown
 "use client";
 
 import { useEffect, useState } from "react";
-import { Clock, User, Calendar, FileText, DollarSign } from "lucide-react";
+import { Clock, User, Calendar, DollarSign, UserPlus, X } from "lucide-react";
 import Modal from "../ui/primitives/Modal";
 import Button from "../ui/primitives/Button";
 import PatientSelect from "../calendar/PatientSelect";
-import { Patient } from "../api/patients";
+import { Patient, createPatient } from "../api/patients";
 import { useAuth } from "../contexts/AuthContext";
-import { toApiDate, dateToLocalInput, debugDateConversion } from "../utils/date-utils";
+import { toApiDate, dateToLocalInput } from "../utils/date-utils";
 
 export interface CreateAppointmentPayload {
   title: string;
@@ -86,6 +85,11 @@ export default function CreateAppointmentModal({
 
   const [errors, setErrors] = useState<Record<string, string>>({});
 
+  const [showNewPatientForm, setShowNewPatientForm] = useState(false);
+  const [newPatient, setNewPatient] = useState({ firstName: "", lastName: "", email: "", phone: "" });
+  const [newPatientErrors, setNewPatientErrors] = useState<Record<string, string>>({});
+  const [isCreatingPatient, setIsCreatingPatient] = useState(false);
+
   useEffect(() => {
     if (!open) return;
 
@@ -103,6 +107,9 @@ export default function CreateAppointmentModal({
       docterId: user?.id,
     });
     setErrors({});
+    setShowNewPatientForm(false);
+    setNewPatient({ firstName: "", lastName: "", email: "", phone: "" });
+    setNewPatientErrors({});
   }, [open, selectedTimeSlot, user?.id]);
 
   // Reset form when modal closes
@@ -120,16 +127,43 @@ export default function CreateAppointmentModal({
       docterId: user?.id,
     });
     setErrors({});
+    setShowNewPatientForm(false);
+    setNewPatient({ firstName: "", lastName: "", email: "", phone: "" });
+    setNewPatientErrors({});
     onClose();
+  };
+
+  const handleCreateNewPatient = async () => {
+    const errs: Record<string, string> = {};
+    if (!newPatient.firstName.trim()) errs.firstName = "First name is required";
+    if (!newPatient.lastName.trim()) errs.lastName = "Last name is required";
+    if (!newPatient.email.trim()) errs.email = "Email is required";
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(newPatient.email)) errs.email = "Invalid email";
+    if (Object.keys(errs).length) { setNewPatientErrors(errs); return; }
+
+    setIsCreatingPatient(true);
+    try {
+      const created = await createPatient({
+        firstName: newPatient.firstName.trim(),
+        lastName: newPatient.lastName.trim(),
+        email: newPatient.email.trim(),
+        phone: newPatient.phone.trim() || undefined,
+      });
+      const withLabel = { ...created, label: `${created.firstName} ${created.lastName}` };
+      handleInputChange("patient", withLabel);
+      setShowNewPatientForm(false);
+      setNewPatient({ firstName: "", lastName: "", email: "", phone: "" });
+      setNewPatientErrors({});
+    } catch {
+      setNewPatientErrors({ email: "Failed to create patient. Email may already be in use." });
+    } finally {
+      setIsCreatingPatient(false);
+    }
   };
 
   // Form validation
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
-
-    console.log("Validating form data:", formData);
-    console.log("Patient object:", formData.patient);
-    console.log("Patient ID:", formData.patient?.id);
 
     if (!formData.title.trim()) {
       newErrors.title = "Title is required";
@@ -193,50 +227,17 @@ export default function CreateAppointmentModal({
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log("Form submission - formData:", formData);
-    console.log("Form submission - patient:", formData.patient);
-    console.log("Form submission - patient.id:", formData.patient?.id);
-    
-    if (!validateForm()) {
-      console.log("Validation failed");
-      return;
-    }
-    
+    if (!validateForm()) return;
+
     const patientId = formData.patient?.id?.trim();
     if (!patientId) {
-      console.error("Patient ID is missing!");
       setErrors((prev) => ({ ...prev, patientId: "Patient selection is required" }));
       return;
     }
-    
-    // Convert datetime-local strings to UTC ISO strings using centralized utility
+
     const startTimeISO = toApiDate(formData.startTime);
     const endTimeISO = toApiDate(formData.endTime);
-    
-    // Enhanced debug logging for timezone conversion
-    const startDate = new Date(formData.startTime);
-    const endDate = new Date(formData.endTime);
-    
-    console.log("🕐 TIMEZONE CONVERSION DETAILS:");
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("📍 Your timezone:", Intl.DateTimeFormat().resolvedOptions().timeZone);
-    console.log("⏰ Timezone offset:", startDate.getTimezoneOffset(), "minutes");
-    console.log("");
-    console.log("🟢 START TIME:");
-    console.log("  • You selected (local):", formData.startTime);
-    console.log("  • Display in your timezone:", startDate.toLocaleString());
-    console.log("  • Sent to API (UTC):", startTimeISO);
-    console.log("  • UTC time:", startDate.toUTCString());
-    console.log("");
-    console.log("🔴 END TIME:");
-    console.log("  • You selected (local):", formData.endTime);
-    console.log("  • Display in your timezone:", endDate.toLocaleString());
-    console.log("  • Sent to API (UTC):", endTimeISO);
-    console.log("  • UTC time:", endDate.toUTCString());
-    console.log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-    console.log("✅ This is CORRECT! API stores in UTC, UI displays in your local time.");
-    console.log("");
-    
+
     onSubmit({
       title: formData.title.trim(),
       description: formData.description.trim() || undefined,
@@ -251,13 +252,18 @@ export default function CreateAppointmentModal({
   };
 
   const handleInputChange = (field: string, value: string | Patient) => {
-    console.log("handleInputChange:", { field, value });
     setFormData((prev) => {
       const updated = { ...prev, [field]: value };
-      console.log("Updated formData:", updated);
+      // Auto-update end time to keep a 30-min duration when start time changes
+      if (field === "startTime" && typeof value === "string" && value) {
+        const start = new Date(value);
+        if (!isNaN(start.getTime())) {
+          const end = new Date(start.getTime() + 30 * 60 * 1000);
+          updated.endTime = dateToLocalInput(end);
+        }
+      }
       return updated;
     });
-    // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: "" }));
     }
@@ -356,32 +362,124 @@ export default function CreateAppointmentModal({
 
         {/* Patient Section */}
         <div>
-          <div className="flex items-center mb-4">
-            <User className="w-5 h-5 text-primary-600 mr-2" />
-            <h4 className="text-lg font-medium text-gray-900">Patient</h4>
-          </div>
-          <div>
-            <label
-              htmlFor="patient"
-              className="block text-sm font-medium text-gray-700 mb-2"
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center">
+              <User className="w-5 h-5 text-primary-600 mr-2" />
+              <h4 className="text-lg font-medium text-gray-900">Patient</h4>
+            </div>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewPatientForm(!showNewPatientForm);
+                setNewPatientErrors({});
+              }}
+              className="flex items-center gap-1.5 text-sm text-primary-600 hover:text-primary-700 font-medium"
             >
-              Patient *
-            </label>
-            <div className={`${errors.patientId ? "border-red-300" : ""}`}>
+              {showNewPatientForm ? (
+                <>
+                  <X className="w-4 h-4" />
+                  Select existing
+                </>
+              ) : (
+                <>
+                  <UserPlus className="w-4 h-4" />
+                  New patient
+                </>
+              )}
+            </button>
+          </div>
+
+          {showNewPatientForm ? (
+            <div className="space-y-3 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <p className="text-sm font-medium text-blue-800">Create new patient</p>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">First Name *</label>
+                  <input
+                    type="text"
+                    value={newPatient.firstName}
+                    onChange={(e) => { setNewPatient(p => ({ ...p, firstName: e.target.value })); setNewPatientErrors(e => ({ ...e, firstName: "" })); }}
+                    className={`block w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 ${newPatientErrors.firstName ? "border-red-300" : "border-gray-300"}`}
+                    placeholder="John"
+                    disabled={isCreatingPatient}
+                  />
+                  {newPatientErrors.firstName && <p className="mt-1 text-xs text-red-600">{newPatientErrors.firstName}</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-700 mb-1">Last Name *</label>
+                  <input
+                    type="text"
+                    value={newPatient.lastName}
+                    onChange={(e) => { setNewPatient(p => ({ ...p, lastName: e.target.value })); setNewPatientErrors(e => ({ ...e, lastName: "" })); }}
+                    className={`block w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 ${newPatientErrors.lastName ? "border-red-300" : "border-gray-300"}`}
+                    placeholder="Doe"
+                    disabled={isCreatingPatient}
+                  />
+                  {newPatientErrors.lastName && <p className="mt-1 text-xs text-red-600">{newPatientErrors.lastName}</p>}
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Email *</label>
+                <input
+                  type="email"
+                  value={newPatient.email}
+                  onChange={(e) => { setNewPatient(p => ({ ...p, email: e.target.value })); setNewPatientErrors(e => ({ ...e, email: "" })); }}
+                  className={`block w-full px-3 py-2 border rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500 ${newPatientErrors.email ? "border-red-300" : "border-gray-300"}`}
+                  placeholder="john.doe@example.com"
+                  disabled={isCreatingPatient}
+                />
+                {newPatientErrors.email && <p className="mt-1 text-xs text-red-600">{newPatientErrors.email}</p>}
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-700 mb-1">Phone (optional)</label>
+                <input
+                  type="tel"
+                  value={newPatient.phone}
+                  onChange={(e) => setNewPatient(p => ({ ...p, phone: e.target.value }))}
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-primary-500"
+                  placeholder="+1 555 000 0000"
+                  disabled={isCreatingPatient}
+                />
+              </div>
+              <div className="flex justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => { setShowNewPatientForm(false); setNewPatientErrors({}); }}
+                  className="px-3 py-1.5 text-sm text-gray-600 hover:text-gray-800 font-medium"
+                  disabled={isCreatingPatient}
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  onClick={handleCreateNewPatient}
+                  disabled={isCreatingPatient}
+                  className="flex items-center gap-1.5 px-4 py-1.5 bg-primary-600 text-white text-sm font-medium rounded-md hover:bg-primary-700 disabled:opacity-60"
+                >
+                  {isCreatingPatient ? (
+                    <><span className="animate-spin rounded-full h-3 w-3 border-b-2 border-white" />Creating...</>
+                  ) : (
+                    <><UserPlus className="w-3.5 h-3.5" />Save & Select</>
+                  )}
+                </button>
+              </div>
+            </div>
+          ) : (
+            <div>
+              <label htmlFor="patient" className="block text-sm font-medium text-gray-700 mb-2">
+                Patient *
+              </label>
               <PatientSelect
                 value={formData.patient && formData.patient.id ? formData.patient : undefined}
-                onChange={(value) => {
-                  console.log("PatientSelect onChange called with:", value);
-                  handleInputChange("patient", value);
-                }}
+                onChange={(value) => handleInputChange("patient", value)}
                 placeholder="Select a patient..."
                 error={errors.patientId}
               />
+              {errors.patientId && (
+                <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
+              )}
             </div>
-            {errors.patientId && (
-              <p className="mt-2 text-sm text-red-600">{errors.patientId}</p>
-            )}
-          </div>
+          )}
         </div>
 
         {/* Schedule Section */}

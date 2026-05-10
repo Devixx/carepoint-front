@@ -1,9 +1,9 @@
-// Enhanced: src/app/ui/MetricCard.tsx - Professional Medical Interface
 "use client";
 
 import { ReactNode } from "react";
+import Link from "next/link";
 import Card from "./primitives/Card";
-import { TrendingUp, TrendingDown, Minus } from "lucide-react";
+import { TrendingUp, TrendingDown, Minus, ArrowRight } from "lucide-react";
 
 interface MetricCardProps {
   label: string;
@@ -15,6 +15,7 @@ interface MetricCardProps {
   loading?: boolean;
   error?: boolean;
   className?: string;
+  href?: string;
 }
 
 export default function MetricCard({
@@ -27,6 +28,7 @@ export default function MetricCard({
   loading = false,
   error = false,
   className = "",
+  href,
 }: MetricCardProps) {
   // Get trend styling
   const getTrendStyling = () => {
@@ -54,10 +56,8 @@ export default function MetricCard({
     }
   };
 
-  return (
-    <Card
-      className={`transition-all duration-200 hover:shadow-lg ${className}`}
-    >
+  const inner = (
+    <Card className={`transition-all duration-200 hover:shadow-lg ${href ? "cursor-pointer hover:ring-2 hover:ring-blue-200" : ""} ${className}`}>
       <div className="p-6">
         <div className="flex items-center justify-between">
           <div className="flex-1">
@@ -73,12 +73,9 @@ export default function MetricCard({
               </div>
             )}
 
-            {/* Trend information */}
             <div className="flex items-center space-x-2 text-xs">
               {trendDirection && trendValue && (
-                <div
-                  className={`flex items-center space-x-1 ${getTrendStyling()}`}
-                >
+                <div className={`flex items-center space-x-1 ${getTrendStyling()}`}>
                   {getTrendIcon()}
                   <span className="font-medium">{trendValue}</span>
                 </div>
@@ -92,16 +89,27 @@ export default function MetricCard({
             </div>
           </div>
 
-          {/* Icon */}
-          {icon && (
-            <div className="flex-shrink-0 ml-4">
+          <div className="flex-shrink-0 ml-4 flex flex-col items-center gap-2">
+            {icon && (
               <div className="w-12 h-12 bg-gray-50 rounded-lg flex items-center justify-center">
                 {icon}
               </div>
-            </div>
-          )}
+            )}
+            {href && (
+              <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors" />
+            )}
+          </div>
         </div>
       </div>
     </Card>
   );
+
+  if (href) {
+    return (
+      <Link href={href} className="group block">
+        {inner}
+      </Link>
+    );
+  }
+  return inner;
 }
