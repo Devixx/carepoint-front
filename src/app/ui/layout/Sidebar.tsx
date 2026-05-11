@@ -9,6 +9,7 @@ import {
   LayoutGrid,
   Settings,
   Stethoscope,
+  Star,
 } from "lucide-react";
 import clsx from "clsx";
 
@@ -21,6 +22,7 @@ const items = [
     label: "Calendar",
     icon: Stethoscope,
   },
+  { href: "/reviews", label: "Reviews", icon: Star },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
